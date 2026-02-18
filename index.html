@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen DEX - Sepolia V3</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            // Warna Ungu/Biru sesuai logo lo
+                            primary: '#6366f1', 
+                            primaryHover: '#4f46e5',
+                            text: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            /* Gradient background sesuai nuansa logo */
+            background: radial-gradient(circle at top center, #312e81 0%, #0f172a 60%); 
+            min-height: 100vh; 
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #6366f1;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #6366f1;
+        }
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="text-white antialiased selection:bg-brand-primary selection:text-white">
+
+    <!-- NAVBAR -->
+    <nav class="flex justify-between items-center p-6 max-w-7xl mx-auto">
+        <!-- Logo Project -->
+        <div class="flex items-center gap-3">
+            <!-- Ganti src ini dengan file logo lo kalau udah disimpan lokal -->
+            <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" alt="Qwen Logo" class="w-10 h-10 drop-shadow-lg">
+            <span class="text-xl font-bold tracking-wide text-white">Qwen DAO</span>
+        </div>
+
+        <!-- Menu -->
+        <div class="hidden md:flex bg-slate-800/60 rounded-full p-1.5 backdrop-blur-md border border-slate-700/50">
+            <button onclick="switchTab('swap')" id="btn-swap" class="px-6 py-2 rounded-full text-sm font-medium bg-slate-700 text-white shadow-sm transition">Swap</button>
+            <button onclick="switchTab('pool')" id="btn-pool" class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Pool</button>
+            <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Bridge</button>
+            <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">About ↗</button>
+        </div>
+
+        <!-- Right Side -->
+        <div class="flex items-center gap-4">
+            <!-- Network Selector -->
+            <div class="hidden md:flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700 hover:border-slate-600 cursor-pointer transition">
+                <div class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                <span class="text-sm font-medium text-slate-200">Sepolia</span>
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+
+            <!-- Connect Button -->
+            <button onclick="connectWallet()" id="connectBtn" class="bg-slate-200 hover:bg-white text-slate-900 font-bold py-2.5 px-6 rounded-full transition shadow-lg">
+                Connect Wallet
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex flex-col items-center justify-center mt-8 px-4 relative">
+        
+        <!-- SWAP VIEW -->
+        <div id="view-swap" class="w-full max-w-[480px] glass-panel rounded-3xl p-2 shadow-2xl transition-all duration-300 relative z-10">
+            <div class="bg-slate-900 rounded-[20px] p-6 relative overflow-hidden">
+                
+                <!-- Header Swap + Settings Icon -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-slate-200">Swap</h2>
+                    <div class="relative">
+                        <button onclick="toggleSettings()" class="text-slate-400 hover:text-white transition p-2 hover:bg-slate-800 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </button>
+
+                        <!-- SETTINGS MODAL POPUP -->
+                        <div id="settings-modal" class="hidden absolute right-0 top-12 w-[320px] bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-4 z-50">
+                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                                <h3 class="font-semibold text-slate-200">Transaction Settings</h3>
+                                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            </div>
+                            
+                            <!-- Slippage -->
+                            <div class="mb-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm text-slate-400">Slippage tolerance</span>
+                                    <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Auto</button>
+                                    <div class="flex-1 bg-slate-900 rounded-lg flex items-center px-3 border border-slate-700">
+                                        <input type="text" value="0.10" class="bg-transparent w-full text-right text-sm text-slate-300 outline-none">
+                                        <span class="text-slate-500 text-xs ml-1">%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Deadline -->
+                            <div class="mb-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm text-slate-400">Transaction deadline</span>
+                                    <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <div class="flex items-center gap-2 bg-slate-900 rounded-lg p-2 border border-slate-700 w-max">
+                                    <input type="number" value="30" class="bg-transparent w-12 text-center text-sm text-slate-300 outline-none">
+                                    <span class="text-slate-500 text-xs">minutes</span>
+                                </div>
+                            </div>
+
+                            <!-- Interface Settings -->
+                            <div class="border-t border-slate-700 pt-3">
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Interface Settings</h4>
+                                
+                                <!-- Toggle 1 -->
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-slate-300">Auto Router API</span>
+                                        <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" checked name="toggle" id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0 transition-all duration-300"/>
+                                        <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
+                                    </div>
+                                </div>
+
+                                <!-- Toggle 2 -->
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-slate-300">Expert Mode</span>
+                                        <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" checked name="toggle" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0 transition-all duration-300"/>
+                                        <label for="toggle2" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input From -->
+                <div class="bg-slate-800/40 rounded-2xl p-4 mb-2 hover:bg-slate-800/60 transition cursor-pointer border border-transparent hover:border-slate-600">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Pay with</span>
+                        <span class="text-slate-400 text-sm">Balance: <span id="balance-from">0.0</span></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <input type="number" id="input-amount" placeholder="0.0" class="bg-transparent text-3xl font-medium w-full outline-none text-white placeholder-slate-500">
+                        <button onclick="openTokenModal('from')" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 rounded-full py-1.5 px-3 transition border border-slate-600">
+                            <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" class="w-6 h-6" id="icon-from">
+                            <span class="font-bold text-white" id="label-from">ETH</span>
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Switcher Icon -->
+                <div class="flex justify-center -my-3 relative z-10">
+                    <div class="bg-slate-800 border-4 border-slate-900 rounded-xl p-2 cursor-pointer hover:rotate-180 transition duration-300 hover:text-brand-primary text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Input To -->
+                <div class="bg-slate-800/40 rounded-2xl p-4 mt-2 hover:bg-slate-800/60 transition cursor-pointer border border-transparent hover:border-slate-600">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Receive</span>
+                        <span class="text-slate-400 text-sm">Balance: <span id="balance-to">0.0</span></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <input type="number" id="output-amount" placeholder="0.0" readonly class="bg-transparent text-3xl font-medium w-full outline-none text-slate-400">
+                        <button onclick="openTokenModal('to')" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 rounded-full py-1.5 px-3 transition border border-slate-600">
+                            <!-- Logo QWEN (Star Icon) -->
+                            <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" class="w-6 h-6" id="icon-to">
+                            <span class="font-bold text-white" id="label-to">QWEN</span>
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Price Info -->
+                <div class="mt-4 flex justify-between items-center px-2">
+                    <span class="text-slate-400 text-sm">You will receive</span>
+                    <span class="text-brand-primary font-bold text-sm">?? QWEN</span>
+                </div>
+
+                <!-- Action Button -->
+                <button id="swap-action-btn" onclick="handleSwap()" class="w-full mt-6 bg-brand-primary hover:bg-brand-primaryHover text-white font-bold py-4 rounded-2xl text-lg transition shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Enter an amount
+                </button>
+            </div>
+        </div>
+
+        <!-- POOL VIEW (Hidden) -->
+        <div id="view-pool" class="hidden w-full max-w-[800px] mt-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-white">Pools</h2>
+                <button class="bg-brand-primary hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg transition shadow-lg shadow-indigo-500/20">+ New Position</button>
+            </div>
+            
+            <div class="glass-panel rounded-3xl p-12 text-center border border-slate-700/50">
+                <div class="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+                <h3 class="text-xl font-medium text-slate-300">Your active V3 liquidity positions will appear here.</h3>
+                
+                <div class="flex gap-4 justify-center mt-8">
+                    <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition border border-slate-700 text-slate-300">
+                        Learn about providing liquidity ↗
+                    </button>
+                    <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition border border-slate-700 text-slate-300">
+                        Top pools ↗
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- TOKEN SELECT MODAL -->
+    <div id="token-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-900 w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white">Select a token</h3>
+                <button onclick="closeTokenModal()" class="text-slate-400 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            
+            <input type="text" placeholder="Search name or paste address" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 px-4 mb-4 outline-none focus:border-brand-primary text-white placeholder-slate-500">
+            
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button onclick="selectToken('ETH')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
+                    <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" class="w-5 h-5"> ETH
+                </button>
+                <button onclick="selectToken('WETH')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
+                    <span class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white">W</span> WETH
+                </button>
+                <button onclick="selectToken('QWEN')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
+                    <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" class="w-5 h-5"> QWEN
+                </button>
+            </div>
+
+            <div class="space-y-1">
+                <div onclick="selectToken('ETH')" class="flex justify-between items-center p-3 hover:bg-slate-800 rounded-xl cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" class="w-8 h-8">
+                        <div>
+                            <div class="font-bold text-white">Ether</div>
+                            <div class="text-xs text-slate-500">ETH</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-medium text-slate-300" id="modal-bal-ETH">0.0</div>
+                    </div>
+                </div>
+                <div onclick="selectToken('QWEN')" class="flex justify-between items-center p-3 hover:bg-slate-800 rounded-xl cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" class="w-8 h-8">
+                        <div>
+                            <div class="font-bold text-white">Qwen</div>
+                            <div class="text-xs text-slate-500">QWEN • Sepolia</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-medium text-slate-300" id="modal-bal-QWEN">0.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONTRACT CONFIGURATION (Uniswap V3 Sepolia) ---
+        const CONTRACTS = {
+            QWEN: "0x7ff367a947f0c01843732a74193022e2e9f261fa",
+            WETH: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14",
+            // Uniswap V3 Core
+            Factory: "0x0227628f3F023bb0B980b67D528571c95c6DaC1c",
+            Router: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E", // SwapRouter02
+            Quoter: "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3", // QuoterV2
+            PositionManager: "0x1238536071E1c677A632429e3655c799b22cDA52"
+        };
+
+        const ERC20_ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)",
+            "function symbol() view returns (string)"
+        ];
+
+        let provider, signer, userAddress;
+        let currentModalTarget = 'from';
+
+        // --- UI FUNCTIONS ---
+        function switchTab(tab) {
+            const swapView = document.getElementById('view-swap');
+            const poolView = document.getElementById('view-pool');
+            const btnSwap = document.getElementById('btn-swap');
+            const btnPool = document.getElementById('btn-pool');
+
+            if (tab === 'swap') {
+                swapView.classList.remove('hidden');
+                poolView.classList.add('hidden');
+                btnSwap.classList.replace('text-slate-400', 'text-white');
+                btnSwap.classList.add('bg-slate-700');
+                btnPool.classList.replace('text-white', 'text-slate-400');
+                btnPool.classList.remove('bg-slate-700');
+            } else {
+                swapView.classList.add('hidden');
+                poolView.classList.remove('hidden');
+                btnPool.classList.replace('text-slate-400', 'text-white');
+                btnPool.classList.add('bg-slate-700');
+                btnSwap.classList.replace('text-white', 'text-slate-400');
+                btnSwap.classList.remove('bg-slate-700');
+            }
+        }
+
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        // Close settings if clicked outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('settings-modal');
+            const btn = document.querySelector('button[onclick="toggleSettings()"]');
+            if (!modal.contains(event.target) && !btn.contains(event.target) && !modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        function openTokenModal(target) {
+            currentModalTarget = target;
+            document.getElementById('token-modal').classList.remove('hidden');
+            updateBalancesInModal();
+        }
+
+        function closeTokenModal() {
+            document.getElementById('token-modal').classList.add('hidden');
+        }
+
+        function selectToken(symbol) {
+            const labelEl = document.getElementById(`label-${currentModalTarget}`);
+            const iconEl = document.getElementById(`icon-${currentModalTarget}`);
+            
+            labelEl.innerText = symbol;
+            
+            if(symbol === 'ETH') iconEl.src = "https://cryptologos.cc/logos/ethereum-eth-logo.png";
+            else if(symbol === 'WETH') iconEl.src = "https://placehold.co/24x24/3b82f6/ffffff?text=W"; 
+            else if(symbol === 'QWEN') iconEl.src = "https://cdn-icons-png.flaticon.com/512/6132/6132976.png";
+
+            closeTokenModal();
+            checkInputState();
+        }
+
+        function checkInputState() {
+            const input = document.getElementById('input-amount');
+            const btn = document.getElementById('swap-action-btn');
+            if(input.value && parseFloat(input.value) > 0) {
+                btn.innerText = "Swap";
+                btn.disabled = false;
+            } else {
+                btn.innerText = "Enter an amount";
+                btn.disabled = true;
+            }
+        }
+
+        document.getElementById('input-amount').addEventListener('input', checkInputState);
+
+        // --- WEB3 FUNCTIONS ---
+        async function connectWallet() {
+            const btn = document.getElementById('connectBtn');
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    signer = await provider.getSigner();
+                    userAddress = await signer.getAddress();
+
+                    const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+                    btn.innerText = shortAddr;
+                    btn.classList.add('bg-slate-800', 'text-white', 'border', 'border-slate-600');
+                    btn.classList.remove('bg-slate-200', 'text-slate-900');
+                    
+                    await fetchBalances();
+                    alert("Connected to Sepolia!");
+                } catch (error) {
+                    console.error(error);
+                    alert("Connection failed");
+                }
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        async function fetchBalances() {
+            if(!userAddress) return;
+
+            // 1. Get ETH Balance
+            const ethBalance = await provider.getBalance(userAddress);
+            const ethFormatted = parseFloat(ethers.formatEther(ethBalance)).toFixed(4);
+            
+            document.getElementById('balance-from').innerText = ethFormatted;
+            document.getElementById('modal-bal-ETH').innerText = ethFormatted;
+
+            // 2. Get QWEN Balance
+            try {
+                const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
+                const qwenBalance = await qwenContract.balanceOf(userAddress);
+                const qwenDecimals = await qwenContract.decimals();
+                const qwenFormatted = parseFloat(ethers.formatUnits(qwenBalance, qwenDecimals)).toLocaleString();
+                
+                document.getElementById('balance-to').innerText = qwenFormatted;
+                document.getElementById('modal-bal-QWEN').innerText = qwenFormatted;
+            } catch (e) {
+                console.log("Error fetching QWEN balance", e);
+            }
+        }
+
+        function updateBalancesInModal() {
+            fetchBalances(); 
+        }
+
+        function handleSwap() {
+            if(!userAddress) {
+                connectWallet();
+                return;
+            }
+            // Nanti disini logic panggil CONTRACTS.Router
+            alert("Ready to swap via Uniswap V3 Router!\nContract: " + CONTRACTS.Router);
+        }
+
+    </script>
+</body>
+</html>
