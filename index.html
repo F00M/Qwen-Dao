@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qwen DEX - Sepolia V3</title>
+    <title>Qwen DAO - Swap</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Ethers.js -->
@@ -20,7 +20,7 @@
                         brand: {
                             bg: '#0f172a',
                             card: '#1e293b',
-                            // Warna Ungu/Biru sesuai logo lo
+                            // Warna Ungu/Biru sesuai logo
                             primary: '#6366f1', 
                             primaryHover: '#4f46e5',
                             text: '#f8fafc'
@@ -32,7 +32,6 @@
     </script>
     <style>
         body { 
-            /* Gradient background sesuai nuansa logo */
             background: radial-gradient(circle at top center, #312e81 0%, #0f172a 60%); 
             min-height: 100vh; 
         }
@@ -41,7 +40,18 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        /* Custom Toggle Switch */
+        
+        /* CSS KHUSUS: HILANGKAN PANAH DI INPUT NUMBER */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Toggle Switch Styling */
         .toggle-checkbox:checked {
             right: 0;
             border-color: #6366f1;
@@ -49,6 +59,16 @@
         .toggle-checkbox:checked + .toggle-label {
             background-color: #6366f1;
         }
+        .toggle-checkbox {
+            right: auto;
+            left: 0; /* Start position */
+            transition: all 0.3s;
+        }
+        .toggle-checkbox:checked {
+            left: 100%; /* End position */
+            margin-left: -20px; /* Adjust for width */
+        }
+
         /* Hide scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -59,9 +79,9 @@
 
     <!-- NAVBAR -->
     <nav class="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <!-- Logo Project -->
+        <!-- Logo Project (Kiri Atas) -->
         <div class="flex items-center gap-3">
-            <!-- Ganti src ini dengan file logo lo kalau udah disimpan lokal -->
+            <!-- GANTI SRC INI JIKA LO PUNYA FILE LOKAL -->
             <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" alt="Qwen Logo" class="w-10 h-10 drop-shadow-lg">
             <span class="text-xl font-bold tracking-wide text-white">Qwen DAO</span>
         </div>
@@ -76,14 +96,12 @@
 
         <!-- Right Side -->
         <div class="flex items-center gap-4">
-            <!-- Network Selector -->
             <div class="hidden md:flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700 hover:border-slate-600 cursor-pointer transition">
                 <div class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                 <span class="text-sm font-medium text-slate-200">Sepolia</span>
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
 
-            <!-- Connect Button -->
             <button onclick="connectWallet()" id="connectBtn" class="bg-slate-200 hover:bg-white text-slate-900 font-bold py-2.5 px-6 rounded-full transition shadow-lg">
                 Connect Wallet
             </button>
@@ -116,7 +134,6 @@
                             <div class="mb-4">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm text-slate-400">Slippage tolerance</span>
-                                    <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
                                 <div class="flex gap-2">
                                     <button class="bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Auto</button>
@@ -131,7 +148,6 @@
                             <div class="mb-4">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm text-slate-400">Transaction deadline</span>
-                                    <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
                                 <div class="flex items-center gap-2 bg-slate-900 rounded-lg p-2 border border-slate-700 w-max">
                                     <input type="number" value="30" class="bg-transparent w-12 text-center text-sm text-slate-300 outline-none">
@@ -143,26 +159,24 @@
                             <div class="border-t border-slate-700 pt-3">
                                 <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Interface Settings</h4>
                                 
-                                <!-- Toggle 1 -->
+                                <!-- Toggle 1: Auto Router -->
                                 <div class="flex justify-between items-center mb-3">
                                     <div class="flex items-center gap-2">
                                         <span class="text-sm text-slate-300">Auto Router API</span>
-                                        <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
                                     <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" checked name="toggle" id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0 transition-all duration-300"/>
+                                        <input type="checkbox" checked name="toggle1" id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle1')"/>
                                         <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
                                     </div>
                                 </div>
 
-                                <!-- Toggle 2 -->
+                                <!-- Toggle 2: Expert Mode -->
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
                                         <span class="text-sm text-slate-300">Expert Mode</span>
-                                        <svg class="w-4 h-4 text-slate-500 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
                                     <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" checked name="toggle" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0 transition-all duration-300"/>
+                                        <input type="checkbox" name="toggle2" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle2')"/>
                                         <label for="toggle2" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
                                     </div>
                                 </div>
@@ -203,7 +217,7 @@
                     <div class="flex justify-between items-center">
                         <input type="number" id="output-amount" placeholder="0.0" readonly class="bg-transparent text-3xl font-medium w-full outline-none text-slate-400">
                         <button onclick="openTokenModal('to')" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 rounded-full py-1.5 px-3 transition border border-slate-600">
-                            <!-- Logo QWEN (Star Icon) -->
+                            <!-- LOGO QWEN (BINTANG UNGU) -->
                             <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" class="w-6 h-6" id="icon-to">
                             <span class="font-bold text-white" id="label-to">QWEN</span>
                             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -214,7 +228,7 @@
                 <!-- Price Info -->
                 <div class="mt-4 flex justify-between items-center px-2">
                     <span class="text-slate-400 text-sm">You will receive</span>
-                    <span class="text-brand-primary font-bold text-sm">?? QWEN</span>
+                    <span class="text-brand-primary font-bold text-sm" id="price-info">?? QWEN</span>
                 </div>
 
                 <!-- Action Button -->
@@ -230,21 +244,8 @@
                 <h2 class="text-3xl font-bold text-white">Pools</h2>
                 <button class="bg-brand-primary hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg transition shadow-lg shadow-indigo-500/20">+ New Position</button>
             </div>
-            
             <div class="glass-panel rounded-3xl p-12 text-center border border-slate-700/50">
-                <div class="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                </div>
                 <h3 class="text-xl font-medium text-slate-300">Your active V3 liquidity positions will appear here.</h3>
-                
-                <div class="flex gap-4 justify-center mt-8">
-                    <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition border border-slate-700 text-slate-300">
-                        Learn about providing liquidity ↗
-                    </button>
-                    <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition border border-slate-700 text-slate-300">
-                        Top pools ↗
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -252,7 +253,7 @@
 
     <!-- TOKEN SELECT MODAL -->
     <div id="token-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-slate-900 w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl transform transition-all scale-100">
+        <div class="bg-slate-900 w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-white">Select a token</h3>
                 <button onclick="closeTokenModal()" class="text-slate-400 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -263,9 +264,6 @@
             <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
                 <button onclick="selectToken('ETH')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
                     <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" class="w-5 h-5"> ETH
-                </button>
-                <button onclick="selectToken('WETH')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
-                    <span class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white">W</span> WETH
                 </button>
                 <button onclick="selectToken('QWEN')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-sm border border-slate-700 whitespace-nowrap text-slate-300">
                     <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" class="w-5 h-5"> QWEN
@@ -302,15 +300,11 @@
     </div>
 
     <script>
-        // --- CONTRACT CONFIGURATION (Uniswap V3 Sepolia) ---
+        // --- CONTRACT CONFIGURATION ---
         const CONTRACTS = {
             QWEN: "0x7ff367a947f0c01843732a74193022e2e9f261fa",
             WETH: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14",
-            // Uniswap V3 Core
-            Factory: "0x0227628f3F023bb0B980b67D528571c95c6DaC1c",
-            Router: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E", // SwapRouter02
-            Quoter: "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3", // QuoterV2
-            PositionManager: "0x1238536071E1c677A632429e3655c799b22cDA52"
+            Router: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E"
         };
 
         const ERC20_ABI = [
@@ -321,6 +315,7 @@
 
         let provider, signer, userAddress;
         let currentModalTarget = 'from';
+        let isSwapping = false;
 
         // --- UI FUNCTIONS ---
         function switchTab(tab) {
@@ -355,10 +350,19 @@
         document.addEventListener('click', function(event) {
             const modal = document.getElementById('settings-modal');
             const btn = document.querySelector('button[onclick="toggleSettings()"]');
-            if (!modal.contains(event.target) && !btn.contains(event.target) && !modal.classList.contains('hidden')) {
+            if (modal && btn && !modal.contains(event.target) && !btn.contains(event.target) && !modal.classList.contains('hidden')) {
                 modal.classList.add('hidden');
             }
         });
+
+        // --- FITUR BARU: LOGIKA TOGGLE SWITCH ---
+        function toggleSwitch(id) {
+            const checkbox = document.getElementById(id);
+            // Kita biarkan checkbox handle state-nya sendiri secara visual via CSS
+            // Tapi kita bisa ambil valuenya kalau mau diproses
+            const isChecked = checkbox.checked;
+            console.log(`${id} is now ${isChecked ? 'ON' : 'OFF'}`);
+        }
 
         function openTokenModal(target) {
             currentModalTarget = target;
@@ -377,7 +381,6 @@
             labelEl.innerText = symbol;
             
             if(symbol === 'ETH') iconEl.src = "https://cryptologos.cc/logos/ethereum-eth-logo.png";
-            else if(symbol === 'WETH') iconEl.src = "https://placehold.co/24x24/3b82f6/ffffff?text=W"; 
             else if(symbol === 'QWEN') iconEl.src = "https://cdn-icons-png.flaticon.com/512/6132/6132976.png";
 
             closeTokenModal();
@@ -387,12 +390,21 @@
         function checkInputState() {
             const input = document.getElementById('input-amount');
             const btn = document.getElementById('swap-action-btn');
-            if(input.value && parseFloat(input.value) > 0) {
+            const priceInfo = document.getElementById('price-info');
+            
+            const val = parseFloat(input.value);
+            
+            if(val > 0) {
                 btn.innerText = "Swap";
                 btn.disabled = false;
+                // Simulasi harga sederhana (1 ETH = 1000 QWEN)
+                priceInfo.innerText = (val * 1000).toLocaleString() + " QWEN";
+                priceInfo.classList.remove('text-slate-400');
+                priceInfo.classList.add('text-brand-primary');
             } else {
                 btn.innerText = "Enter an amount";
                 btn.disabled = true;
+                priceInfo.innerText = "?? QWEN";
             }
         }
 
@@ -413,7 +425,6 @@
                     btn.classList.remove('bg-slate-200', 'text-slate-900');
                     
                     await fetchBalances();
-                    alert("Connected to Sepolia!");
                 } catch (error) {
                     console.error(error);
                     alert("Connection failed");
@@ -451,15 +462,48 @@
             fetchBalances(); 
         }
 
-        function handleSwap() {
+        // --- FITUR BARU: LOGIKA SWAP ---
+        async function handleSwap() {
             if(!userAddress) {
                 connectWallet();
                 return;
             }
-            // Nanti disini logic panggil CONTRACTS.Router
-            alert("Ready to swap via Uniswap V3 Router!\nContract: " + CONTRACTS.Router);
-        }
 
+            const btn = document.getElementById('swap-action-btn');
+            const inputVal = document.getElementById('input-amount').value;
+
+            if(isSwapping) return;
+            isSwapping = true;
+
+            // 1. Ubah tombol jadi loading
+            const originalText = btn.innerText;
+            btn.innerText = "Confirm in Wallet...";
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-wait');
+
+            try {
+                // 2. Simulasi proses transaksi (karena belum ada backend router lengkap)
+                // Di sini nanti lo panggil: router.exactInputSingle(...)
+                
+                await new Promise(r => setTimeout(r, 2000)); // Delay 2 detik biar kerasa
+
+                alert(`✅ Swap Successful!\n\nSent: ${inputVal} ETH\nReceived: ${(inputVal * 1000).toLocaleString()} QWEN\n\nTx Hash: 0x123... (Simulated)`);
+                
+                // Reset form
+                document.getElementById('input-amount').value = '';
+                checkInputState();
+
+            } catch (error) {
+                console.error(error);
+                alert("Swap Failed or Rejected");
+            } finally {
+                // 3. Kembalikan tombol
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+                isSwapping = false;
+            }
+        }
     </script>
 </body>
 </html>
