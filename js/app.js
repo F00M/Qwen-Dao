@@ -4,13 +4,12 @@ let currentModalTarget = 'from';
 // Initialize App
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("🚀 Qwen DAO DEX Loaded");
+    console.log("Pool Address:", CONTRACTS.QWEN_WETH_POOL);
     
-    // Auto-detect pool on page load
     if (typeof window.ethereum !== 'undefined') {
         provider = new ethers.BrowserProvider(window.ethereum);
-        detectPool().then(() => {
-            updatePoolStatusUI(POOL_EXISTS);
-        });
+        await detectPool();
+        updatePoolStatusUI(POOL_EXISTS);
     }
 });
 
