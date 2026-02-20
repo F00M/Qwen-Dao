@@ -5,6 +5,11 @@ let isFetchingPrice = false;
 let priceDebounceTimer = null;
 let isPoolDetecting = false;
 
+// Pool token info
+let POOL_TOKEN0 = null;
+let POOL_TOKEN1 = null;
+let TOKEN_IN_IS_TOKEN0 = false;
+
 // ============================================
 // CONNECT WALLET (DIRECT METAMASK)
 // ============================================
@@ -61,6 +66,9 @@ async function detectPool() {
             const pool = new ethers.Contract(CONTRACTS.QWEN_WETH_POOL, POOL_ABI, provider);
             
             try {
+                // Get pool token info
+                const token0 = await pool.token0();
+                const token1 = await pool.token1();
                 const fee = await pool.fee();
                 const liquidity = await pool.liquidity();
                 const slot0 = await pool.slot0();
@@ -68,48 +76,26 @@ async function detectPool() {
                 DETECTED_POOL_ADDRESS = CONTRACTS.QWEN_WETH_POOL;
                 DETECTED_FEE_TIER = fee;
                 POOL_EXISTS = true;
+                POOL_TOKEN0 = token0.toLowerCase();
+                POOL_TOKEN1 = token1.toLowerCase();
+                
+                // Determine token order for swap
+                TOKEN_IN_IS_TOKEN0 = (CONTRACTS.WETH.toLowerCase() === POOL_TOKEN0);
                 
                 console.log(`✅ Pool verified!`);
                 console.log(`   Address: ${DETECTED_POOL_ADDRESS}`);
+                console.log(`   Token0: ${POOL_TOKEN0}`);
+                console.log(`   Token1: ${POOL_TOKEN1}`);
                 console.log(`   Fee Tier: ${getFeeTierLabel(fee)} (${fee})`);
                 console.log(`   Liquidity: ${liquidity.toString()}`);
                 console.log(`   Tick: ${slot0.tick}`);
+                console.log(`   WETH is Token0: ${TOKEN_IN_IS_TOKEN0}`);
                 
                 isPoolDetecting = false;
                 return true;
                 
             } catch (error) {
                 console.error('❌ Pool address invalid:', error);
-            }
-        }
-        
-        console.log('🔍 Auto-detecting pool from factory...');
-        const factory = new ethers.Contract(CONTRACTS.Factory, FACTORY_ABI, provider);
-        
-        for (const fee of FEE_TIERS) {
-            try {
-                const poolAddress = await factory.getPool(
-                    CONTRACTS.WETH,
-                    CONTRACTS.QWEN,
-                    fee
-                );
-                
-                if (poolAddress && poolAddress !== "0x0000000000000000000000000000000000000000") {
-                    DETECTED_POOL_ADDRESS = poolAddress;
-                    DETECTED_FEE_TIER = fee;
-                    POOL_EXISTS = true;
-                    
-                    console.log(`✅ Pool detected from factory!`);
-                    console.log(`   Address: ${poolAddress}`);
-                    console.log(`   Fee Tier: ${getFeeTierLabel(fee)} (${fee})`);
-                    
-                    await getPoolInfo(poolAddress);
-                    
-                    isPoolDetecting = false;
-                    return true;
-                }
-            } catch (err) {
-                continue;
             }
         }
         
@@ -212,7 +198,7 @@ async function fetchBalances() {
 }
 
 // ============================================
-// FETCH REAL-TIME PRICE FROM UNISWAP
+// FETCH REAL-TIME PRICE FROM UNISWAP (FIXED)
 // ============================================
 async function fetchPriceFromUniswap(amountIn) {
     if (!provider || isFetchingPrice) return null;
@@ -222,19 +208,37 @@ async function fetchPriceFromUniswap(amountIn) {
     const pricePerToken = document.getElementById('price-per-token');
     
     console.log('🔍 Fetching price...');
-    console.log('Pool address:', DETECTED_POOL_ADDRESS);
+    console.log('Pool exists:', POOL_EXISTS);
+    console.log('Pool Token0:', POOL_TOKEN0);
+    console.log('Pool Token1:', POOL_TOKEN1);
+    console.log('WETH is Token0:', TOKEN_IN_IS_TOKEN0);
     console.log('Fee tier:', DETECTED_FEE_TIER);
     console.log('Amount in:', amountIn);
+    
+    if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
+        priceInfo.innerText = "No Liquidity Pool";
+        priceInfo.classList.add('text-red-400');
+        pricePerToken.innerHTML = `<span class="text-red-400">●</span> Pool tidak ditemukan`;
+        isFetchingPrice = false;
+        return null;
+    }
     
     try {
         const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
         const amountInWei = ethers.parseEther(amountIn.toString());
         
+        // Determine correct token order based on pool
+        const tokenIn = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.WETH : CONTRACTS.QWEN;
+        const tokenOut = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.QWEN : CONTRACTS.WETH;
+        
         console.log('📞 Calling QuoterV2...');
+        console.log('Token In:', tokenIn);
+        console.log('Token Out:', tokenOut);
+        console.log('Fee:', DETECTED_FEE_TIER);
         
         const quote = await quoter.quoteExactInputSingle({
-            tokenIn: CONTRACTS.WETH,
-            tokenOut: CONTRACTS.QWEN,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
             amountIn: amountInWei,
             fee: DETECTED_FEE_TIER,
             sqrtPriceLimitX96: 0
@@ -242,9 +246,19 @@ async function fetchPriceFromUniswap(amountIn) {
         
         console.log('✅ Quote received:', quote.amountOut.toString());
         
+        // Get QWEN decimals for output formatting
         const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
         const qwenDecimals = await qwenContract.decimals();
-        const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
+        
+        // Calculate output based on token order
+        let amountOut;
+        if (TOKEN_IN_IS_TOKEN0) {
+            // WETH -> QWEN (Token0 -> Token1)
+            amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
+        } else {
+            // QWEN -> WETH (Token1 -> Token0)
+            amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
+        }
         
         priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
         priceInfo.classList.remove('loading-text', 'text-slate-400', 'text-red-400');
@@ -264,6 +278,7 @@ async function fetchPriceFromUniswap(amountIn) {
         console.error("Error code:", error.code);
         console.error("Error reason:", error.reason);
         console.error("Error data:", error.data);
+        console.error("Error message:", error.message);
         
         priceInfo.innerText = "Price unavailable";
         priceInfo.classList.add('loading-text', 'text-slate-400');
@@ -275,6 +290,8 @@ async function fetchPriceFromUniswap(amountIn) {
             errorMsg = "Masalah jaringan";
         } else if (error.reason) {
             errorMsg = error.reason;
+        } else if (error.message) {
+            errorMsg = error.message;
         }
         
         pricePerToken.innerHTML = `
