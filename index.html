@@ -11,6 +11,10 @@
     <!-- Ethers.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     
+    <!-- Reown AppKit (WalletConnect) -->
+    <script src="https://unpkg.com/@reown/appkit@1.0.0/dist/index.js"></script>
+    <script src="https://unpkg.com/@reown/appkit-adapter-ethers@1.0.0/dist/index.js"></script>
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -56,9 +60,9 @@
                 <span class="text-sm font-medium text-slate-200">Sepolia</span>
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
-            <button onclick="connectWallet()" id="connectBtn" class="bg-slate-200 hover:bg-white text-slate-900 font-bold py-2.5 px-6 rounded-full transition shadow-lg">
-                Connect Wallet
-            </button>
+            
+            <!-- Reown Connect Button -->
+            <appkit-button></appkit-button>
         </div>
     </nav>
 
