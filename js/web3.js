@@ -8,13 +8,16 @@ let isPoolDetecting = false;
 // ============================================
 // REOWN APPKIT CONFIGURATION
 // ============================================
-const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; // GANTI DENGAN PROJECT ID LO DARI cloud.reown.com
+const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
 
-// Initialize Reown AppKit
 async function initReownAppKit() {
     try {
         const { createAppKit } = window.AppKit;
         const { EthersAdapter } = window.AppKitAdapterEthers;
+        
+        if (!createAppKit || !EthersAdapter) {
+            throw new Error('Reown scripts not loaded');
+        }
         
         const ethersAdapter = new EthersAdapter();
         
@@ -26,14 +29,11 @@ async function initReownAppKit() {
                     id: 11155111,
                     name: 'Sepolia',
                     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+                    rpcUrl: 'https://rpc.sepolia.org',
                     blockExplorerUrl: 'https://sepolia.etherscan.io'
                 }
             ],
-            defaultNetwork: {
-                id: 11155111,
-                name: 'Sepolia'
-            },
+            defaultNetwork: { id: 11155111, name: 'Sepolia' },
             themeMode: 'dark',
             themeVariables: {
                 '--w3m-accent': '#6366f1',
@@ -56,12 +56,10 @@ async function initReownAppKit() {
                 userAddress = account.address;
                 provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
-                
                 await onWalletConnected();
             }
         });
         
-        // Listen for disconnect
         window.addEventListener('appkit:disconnect', () => {
             userAddress = null;
             provider = null;
@@ -70,7 +68,7 @@ async function initReownAppKit() {
         });
         
     } catch (error) {
-        console.error('❌ Failed to initialize Reown AppKit:', error);
+        console.error('❌ Reown failed:', error);
     }
 }
 
@@ -81,10 +79,8 @@ async function onWalletConnected() {
     const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
     console.log(`✅ Wallet connected: ${userAddress}`);
     
-    // Detect pool & fetch balances
     await detectPool();
     await fetchBalances();
-    
     updatePoolStatusUI(POOL_EXISTS);
 }
 
