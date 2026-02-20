@@ -6,7 +6,90 @@ let priceDebounceTimer = null;
 let isPoolDetecting = false;
 
 // ============================================
-// AUTO-DETECT POOL (BARU!)
+// REOWN APPKIT CONFIGURATION
+// ============================================
+const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; // GANTI DENGAN PROJECT ID LO DARI cloud.reown.com
+
+// Initialize Reown AppKit
+async function initReownAppKit() {
+    try {
+        const { createAppKit } = window.AppKit;
+        const { EthersAdapter } = window.AppKitAdapterEthers;
+        
+        const ethersAdapter = new EthersAdapter();
+        
+        const appkit = createAppKit({
+            adapters: [ethersAdapter],
+            projectId: REOWN_PROJECT_ID,
+            networks: [
+                {
+                    id: 11155111,
+                    name: 'Sepolia',
+                    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+                    blockExplorerUrl: 'https://sepolia.etherscan.io'
+                }
+            ],
+            defaultNetwork: {
+                id: 11155111,
+                name: 'Sepolia'
+            },
+            themeMode: 'dark',
+            themeVariables: {
+                '--w3m-accent': '#6366f1',
+                '--w3m-color-mix': '#6366f1'
+            },
+            metadata: {
+                name: 'Qwen DAO',
+                description: 'Qwen DAO DEX on Sepolia',
+                url: window.location.origin,
+                icons: ['https://cdn-icons-png.flaticon.com/512/6132/6132976.png']
+            }
+        });
+        
+        console.log('✅ Reown AppKit initialized');
+        
+        // Listen for account changes
+        window.addEventListener('appkit:account', async (event) => {
+            const account = event.detail;
+            if (account && account.address) {
+                userAddress = account.address;
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                
+                await onWalletConnected();
+            }
+        });
+        
+        // Listen for disconnect
+        window.addEventListener('appkit:disconnect', () => {
+            userAddress = null;
+            provider = null;
+            signer = null;
+            console.log('🔌 Wallet disconnected');
+        });
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize Reown AppKit:', error);
+    }
+}
+
+// ============================================
+// WALLET CONNECTED CALLBACK
+// ============================================
+async function onWalletConnected() {
+    const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+    console.log(`✅ Wallet connected: ${userAddress}`);
+    
+    // Detect pool & fetch balances
+    await detectPool();
+    await fetchBalances();
+    
+    updatePoolStatusUI(POOL_EXISTS);
+}
+
+// ============================================
+// AUTO-DETECT POOL
 // ============================================
 async function detectPool() {
     if (isPoolDetecting || !provider) return false;
@@ -17,7 +100,6 @@ async function detectPool() {
     try {
         const factory = new ethers.Contract(CONTRACTS.Factory, FACTORY_ABI, provider);
         
-        // Check each fee tier to find existing pool
         for (const fee of FEE_TIERS) {
             try {
                 const poolAddress = await factory.getPool(
@@ -26,7 +108,6 @@ async function detectPool() {
                     fee
                 );
                 
-                // If pool address is not zero address, pool exists!
                 if (poolAddress && poolAddress !== "0x0000000000000000000000000000000000000000") {
                     DETECTED_POOL_ADDRESS = poolAddress;
                     DETECTED_FEE_TIER = fee;
@@ -36,19 +117,16 @@ async function detectPool() {
                     console.log(`   Address: ${poolAddress}`);
                     console.log(`   Fee Tier: ${getFeeTierLabel(fee)} (${fee})`);
                     
-                    // Get additional pool info
                     await getPoolInfo(poolAddress);
                     
                     isPoolDetecting = false;
                     return true;
                 }
             } catch (err) {
-                // Pool doesn't exist for this fee tier, continue checking
                 continue;
             }
         }
         
-        // No pool found
         POOL_EXISTS = false;
         console.log("❌ No pool found for QWEN/WETH pair");
         isPoolDetecting = false;
@@ -61,20 +139,17 @@ async function detectPool() {
     }
 }
 
-// Get Pool Info (liquidity, price, etc.)
+// Get Pool Info
 async function getPoolInfo(poolAddress) {
     try {
         const pool = new ethers.Contract(poolAddress, POOL_ABI, provider);
         
-        // Get liquidity
         const liquidity = await pool.liquidity();
         console.log(`💧 Pool Liquidity: ${liquidity.toString()}`);
         
-        // Get slot0 for current price
         const slot0 = await pool.slot0();
         console.log(`📊 Current Tick: ${slot0.tick}`);
         
-        // Update UI with pool info
         updatePoolStatusUI(true);
         
     } catch (error) {
@@ -86,48 +161,42 @@ async function getPoolInfo(poolAddress) {
 // Update UI with pool status
 function updatePoolStatusUI(poolExists) {
     const pricePerToken = document.getElementById('price-per-token');
+    const poolStatusDisplay = document.getElementById('pool-status-display');
+    const poolAddressDisplay = document.getElementById('pool-address-display');
     
     if (poolExists && DETECTED_FEE_TIER) {
         pricePerToken.innerHTML = `
             <span class="text-green-400">●</span> 
-            Pool Active @ ${getFeeTierLabel(DETECTED_FEE_TIER)}
+            1 ETH = ?? QWEN (@ ${getFeeTierLabel(DETECTED_FEE_TIER)})
         `;
+        
+        if (poolStatusDisplay) {
+            poolStatusDisplay.innerHTML = `
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                <span class="text-sm text-green-400 font-medium">Active</span>
+                <span class="text-xs text-slate-400 ml-2">@ ${getFeeTierLabel(DETECTED_FEE_TIER)}</span>
+            `;
+        }
+        
+        if (poolAddressDisplay) {
+            poolAddressDisplay.innerText = `Pool: ${DETECTED_POOL_ADDRESS.substring(0, 10)}...${DETECTED_POOL_ADDRESS.substring(38)}`;
+        }
     } else {
         pricePerToken.innerHTML = `
             <span class="text-red-400">●</span> 
             No Pool Found - Create Pool First
         `;
-    }
-}
-
-// ============================================
-// CONNECT WALLET
-// ============================================
-async function connectWallet() {
-    const btn = document.getElementById('connectBtn');
-    
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-            userAddress = await signer.getAddress();
-
-            const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
-            btn.innerText = shortAddr;
-            btn.classList.add('bg-slate-800', 'text-white', 'border', 'border-slate-600');
-            btn.classList.remove('bg-slate-200', 'text-slate-900');
-            
-            // Detect pool after wallet connect
-            await detectPool();
-            await fetchBalances();
-            
-            console.log("✅ Wallet connected:", userAddress);
-        } catch (error) {
-            console.error("❌ Connection failed:", error);
-            alert("Connection failed. Please try again.");
+        
+        if (poolStatusDisplay) {
+            poolStatusDisplay.innerHTML = `
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span class="text-sm text-red-400 font-medium">No Pool Found</span>
+            `;
         }
-    } else {
-        alert("Please install MetaMask!");
+        
+        if (poolAddressDisplay) {
+            poolAddressDisplay.innerText = "Create a liquidity pool first on Uniswap";
+        }
     }
 }
 
@@ -137,14 +206,12 @@ async function connectWallet() {
 async function fetchBalances() {
     if(!userAddress) return;
 
-    // ETH Balance
     const ethBalance = await provider.getBalance(userAddress);
     const ethFormatted = parseFloat(ethers.formatEther(ethBalance)).toFixed(4);
     
     document.getElementById('balance-from').innerText = ethFormatted;
     document.getElementById('modal-bal-ETH').innerText = ethFormatted;
 
-    // QWEN Balance
     try {
         const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
         const qwenBalance = await qwenContract.balanceOf(userAddress);
@@ -164,9 +231,8 @@ async function fetchBalances() {
 async function fetchPriceFromUniswap(amountIn) {
     if (!provider || isFetchingPrice) return null;
     
-    // Check if pool exists first
     if (!POOL_EXISTS) {
-        await detectPool(); // Re-detect in case pool was created
+        await detectPool();
     }
     
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
@@ -190,7 +256,7 @@ async function fetchPriceFromUniswap(amountIn) {
             tokenIn: CONTRACTS.WETH,
             tokenOut: CONTRACTS.QWEN,
             amountIn: amountInWei,
-            fee: DETECTED_FEE_TIER, // Auto-detected fee tier
+            fee: DETECTED_FEE_TIER,
             sqrtPriceLimitX96: 0
         });
         
@@ -234,7 +300,7 @@ async function executeSwap(amountIn, amountOutMinimum) {
         {
             tokenIn: CONTRACTS.WETH,
             tokenOut: CONTRACTS.QWEN,
-            fee: DETECTED_FEE_TIER, // Auto-detected fee tier
+            fee: DETECTED_FEE_TIER,
             recipient: userAddress,
             deadline: Math.floor(Date.now() / 1000) + 60 * 20,
             amountIn: ethers.parseEther(amountIn.toString()),
