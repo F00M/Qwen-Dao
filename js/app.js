@@ -108,8 +108,9 @@ function checkInputState() {
     } else {
         btn.innerText = "Enter an amount";
         btn.disabled = true;
-        priceInfo.innerText = "?? QWEN";
+        priceInfo.innerText = "?? " + (swapDirection === 'ETH_TO_QWEN' ? 'QWEN' : 'ETH');
         priceInfo.classList.remove('loading-text');
+        document.getElementById('output-amount').value = '0.0';
         document.getElementById('price-per-token').innerHTML = `<span class="text-yellow-400">●</span> Detecting pool...`;
     }
 }
@@ -147,7 +148,10 @@ async function handleSwap() {
 
         // Step 2: Confirm with user
         const priceInfo = document.getElementById('price-info').innerText;
-        const confirmMsg = `Konfirmasi Swap:\n\nKirim: ${inputVal} ETH\nTerima: ${priceInfo}\n\nLanjutkan?`;
+        const inputToken = swapDirection === 'ETH_TO_QWEN' ? 'ETH' : 'QWEN';
+        const outputToken = swapDirection === 'ETH_TO_QWEN' ? 'QWEN' : 'ETH';
+        
+        const confirmMsg = `Konfirmasi Swap:\n\nKirim: ${inputVal} ${inputToken}\nTerima: ${priceInfo}\n\nLanjutkan?`;
         
         if (!confirm(confirmMsg)) {
             isSwapping = false;
@@ -160,11 +164,12 @@ async function handleSwap() {
         // Step 3: Execute swap
         btn.innerText = "Confirm in Wallet...";
         
-        const txHash = await executeSwap(inputVal, quote.amountOutWei);
+        const txHash = await executeSwap(inputVal, quote.amountOutWei, quote.tokenIn, quote.tokenOut);
         
-        alert(`✅ Swap Successful!\n\nSent: ${inputVal} ETH\nReceived: ${priceInfo}\n\nTx Hash: ${txHash}`);
+        alert(`✅ Swap Successful!\n\nSent: ${inputVal} ${inputToken}\nReceived: ${priceInfo}\n\nTx Hash: ${txHash}`);
         
         document.getElementById('input-amount').value = '';
+        document.getElementById('output-amount').value = '0.0';
         checkInputState();
         fetchBalances();
 
