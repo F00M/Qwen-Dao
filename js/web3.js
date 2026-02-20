@@ -66,7 +66,6 @@ async function detectPool() {
             const pool = new ethers.Contract(CONTRACTS.QWEN_WETH_POOL, POOL_ABI, provider);
             
             try {
-                // Get pool token info
                 const token0 = await pool.token0();
                 const token1 = await pool.token1();
                 const fee = await pool.fee();
@@ -79,7 +78,6 @@ async function detectPool() {
                 POOL_TOKEN0 = token0.toLowerCase();
                 POOL_TOKEN1 = token1.toLowerCase();
                 
-                // Determine token order for swap
                 TOKEN_IN_IS_TOKEN0 = (CONTRACTS.WETH.toLowerCase() === POOL_TOKEN0);
                 
                 console.log(`✅ Pool verified!`);
@@ -198,7 +196,7 @@ async function fetchBalances() {
 }
 
 // ============================================
-// FETCH REAL-TIME PRICE FROM UNISWAP (FIXED)
+// FETCH REAL-TIME PRICE FROM UNISWAP
 // ============================================
 async function fetchPriceFromUniswap(amountIn) {
     if (!provider || isFetchingPrice) return null;
@@ -208,8 +206,6 @@ async function fetchPriceFromUniswap(amountIn) {
     const pricePerToken = document.getElementById('price-per-token');
     
     console.log('🔍 Fetching price...');
-    console.log('Pool exists:', POOL_EXISTS);
-    console.log('Amount in:', amountIn);
     
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
         priceInfo.innerText = "No Liquidity Pool";
@@ -220,11 +216,9 @@ async function fetchPriceFromUniswap(amountIn) {
     }
     
     try {
-        // ✅ PENTING: Pakai provider untuk read-only call
         const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
         const amountInWei = ethers.parseEther(amountIn.toString());
         
-        // Determine correct token order based on pool
         const tokenIn = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.WETH : CONTRACTS.QWEN;
         const tokenOut = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.QWEN : CONTRACTS.WETH;
         
@@ -244,11 +238,9 @@ async function fetchPriceFromUniswap(amountIn) {
         
         console.log('✅ Quote received:', quote.amountOut.toString());
         
-        // Get QWEN decimals for output formatting
         const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
         const qwenDecimals = await qwenContract.decimals();
         
-        // Format output
         const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
         
         priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
@@ -266,9 +258,6 @@ async function fetchPriceFromUniswap(amountIn) {
         
     } catch (error) {
         console.error("❌ Error fetching price:", error);
-        console.error("Error code:", error.code);
-        console.error("Error reason:", error.reason);
-        console.error("Error message:", error.message);
         
         priceInfo.innerText = "Price unavailable";
         priceInfo.classList.add('loading-text', 'text-slate-400');
@@ -278,8 +267,6 @@ async function fetchPriceFromUniswap(amountIn) {
             errorMsg = "Pool tidak ada liquidity";
         } else if (error.code === 'NETWORK_ERROR') {
             errorMsg = "Masalah jaringan";
-        } else if (error.code === 'UNSUPPORTED_OPERATION') {
-            errorMsg = "Quoter call tidak support - cek contract";
         } else if (error.message) {
             errorMsg = error.message;
         }
