@@ -8,7 +8,7 @@ let isPoolDetecting = false;
 // ============================================
 // REOWN APPKIT CONFIGURATION
 // ============================================
-const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
+const REOWN_PROJECT_ID = fec8257713128744eb3a392f52db227f ; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
 
 async function initReownAppKit() {
     try {
