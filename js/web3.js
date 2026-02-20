@@ -7,13 +7,16 @@ let isFetchingPrice = false;
 let priceDebounceTimer = null;
 let isPoolDetecting = false;
 
-// Pool info (HANYA di web3.js)
+// Pool info
 let DETECTED_POOL_ADDRESS = null;
 let DETECTED_FEE_TIER = null;
 let POOL_EXISTS = false;
 let POOL_TOKEN0 = null;
 let POOL_TOKEN1 = null;
 let TOKEN_IN_IS_TOKEN0 = false;
+
+// Swap direction (true = ETH→QWEN, false = QWEN→ETH)
+let swapDirection = 'ETH_TO_QWEN';
 
 // Slippage tolerance (0.5% = 50 basis points)
 const SLIPPAGE_BPS = 50;
@@ -212,16 +215,17 @@ async function fetchPriceFromUniswap(amountIn) {
     isFetchingPrice = true;
     const priceInfo = document.getElementById('price-info');
     const pricePerToken = document.getElementById('price-per-token');
+    const outputInput = document.getElementById('output-amount');
     
     console.log('🔍 Fetching price...');
-    console.log('POOL_EXISTS:', POOL_EXISTS);
-    console.log('DETECTED_FEE_TIER:', DETECTED_FEE_TIER);
+    console.log('Swap Direction:', swapDirection);
     console.log('Amount In:', amountIn);
     
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
         priceInfo.innerText = "No Liquidity Pool";
         priceInfo.classList.add('text-red-400');
         pricePerToken.innerHTML = `<span class="text-red-400">●</span> Pool tidak ditemukan`;
+        outputInput.value = '0.0';
         isFetchingPrice = false;
         return null;
     }
@@ -232,12 +236,21 @@ async function fetchPriceFromUniswap(amountIn) {
         const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
         const amountInWei = ethers.parseEther(amountIn.toString());
         
-        // ✅ FIXED: Selalu WETH → QWEN (sesuai UI)
-        const tokenIn = CONTRACTS.WETH;
-        const tokenOut = CONTRACTS.QWEN;
+        // Determine tokens based on swap direction
+        let tokenIn, tokenOut, outputDecimals;
         
-        console.log('Token In (WETH):', tokenIn);
-        console.log('Token Out (QWEN):', tokenOut);
+        if (swapDirection === 'ETH_TO_QWEN') {
+            tokenIn = CONTRACTS.WETH;
+            tokenOut = CONTRACTS.QWEN;
+            outputDecimals = 18; // QWEN decimals
+        } else {
+            tokenIn = CONTRACTS.QWEN;
+            tokenOut = CONTRACTS.WETH;
+            outputDecimals = 18; // WETH decimals
+        }
+        
+        console.log('Token In:', tokenIn);
+        console.log('Token Out:', tokenOut);
         console.log('Fee:', DETECTED_FEE_TIER);
         
         const quote = await quoter.quoteExactInputSingle.staticCall({
@@ -256,30 +269,38 @@ async function fetchPriceFromUniswap(amountIn) {
             priceInfo.innerText = "No Liquidity";
             priceInfo.classList.add('text-red-400');
             pricePerToken.innerHTML = `<span class="text-red-400">●</span> Pool kosong`;
+            outputInput.value = '0.0';
             isFetchingPrice = false;
             return null;
         }
         
-        // QWEN decimals = 18
-        const qwenDecimals = 18;
-        const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
+        const amountOut = ethers.formatUnits(quote.amountOut, outputDecimals);
         
         console.log('Amount Out:', amountOut);
         
-        priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
+        // ✅ UPDATE: Isi kolom Receive dengan jumlah yang akan diterima
+        outputInput.value = parseFloat(amountOut).toLocaleString('en-US', { maximumFractionDigits: 6 });
+        
+        priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " " + (swapDirection === 'ETH_TO_QWEN' ? 'QWEN' : 'ETH');
         priceInfo.classList.remove('loading-text', 'text-slate-400', 'text-red-400');
         priceInfo.classList.add('text-brand-primary');
         
-        const pricePerEth = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(2);
+        // Calculate price per token
+        const pricePerToken_value = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(6);
+        const outputToken = swapDirection === 'ETH_TO_QWEN' ? 'QWEN' : 'ETH';
+        const inputToken = swapDirection === 'ETH_TO_QWEN' ? 'ETH' : 'QWEN';
+        
         pricePerToken.innerHTML = `
             <span class="text-green-400">●</span> 
-            1 ETH = ${parseFloat(pricePerEth).toLocaleString()} QWEN (@ ${getFeeTierLabel(DETECTED_FEE_TIER)})
+            1 ${inputToken} = ${parseFloat(pricePerToken_value).toLocaleString()} ${outputToken} (@ ${getFeeTierLabel(DETECTED_FEE_TIER)})
         `;
         
         isFetchingPrice = false;
         return {
             amountOut: amountOut,
-            amountOutWei: quote.amountOut
+            amountOutWei: quote.amountOut,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut
         };
         
     } catch (error) {
@@ -288,6 +309,7 @@ async function fetchPriceFromUniswap(amountIn) {
         priceInfo.innerText = "Price unavailable";
         priceInfo.classList.add('loading-text', 'text-slate-400');
         pricePerToken.innerHTML = `<span class="text-yellow-400">●</span> ${error.message}`;
+        outputInput.value = '0.0';
         
         isFetchingPrice = false;
         return null;
@@ -297,13 +319,15 @@ async function fetchPriceFromUniswap(amountIn) {
 // ============================================
 // EXECUTE SWAP
 // ============================================
-async function executeSwap(amountIn, amountOutWei) {
+async function executeSwap(amountIn, amountOutWei, tokenIn, tokenOut) {
     if (!signer) throw new Error("Wallet not connected");
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) throw new Error("No liquidity pool found");
     if (!amountOutWei) throw new Error("Amount out not calculated");
     
     console.log('🔄 Executing swap...');
     console.log('Amount In:', amountIn);
+    console.log('Token In:', tokenIn);
+    console.log('Token Out:', tokenOut);
     console.log('Amount Out Wei:', amountOutWei.toString());
     console.log('Fee Tier:', DETECTED_FEE_TIER);
     
@@ -319,25 +343,27 @@ async function executeSwap(amountIn, amountOutWei) {
     const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
     
     console.log('Deadline:', deadline);
-    console.log('Token In:', CONTRACTS.WETH);
-    console.log('Token Out:', CONTRACTS.QWEN);
     
     try {
-        const tx = await router.exactInputSingle(
-            {
-                tokenIn: CONTRACTS.WETH,
-                tokenOut: CONTRACTS.QWEN,
-                fee: DETECTED_FEE_TIER,
-                recipient: userAddress,
-                deadline: deadline,
-                amountIn: ethers.parseEther(amountIn.toString()),
-                amountOutMinimum: amountOutMinimum,
-                sqrtPriceLimitX96: 0
-            },
-            {
-                value: ethers.parseEther(amountIn.toString())
-            }
-        );
+        // Check if swapping ETH or ERC20
+        const isEthSwap = tokenIn.toLowerCase() === CONTRACTS.WETH.toLowerCase();
+        
+        const txParams = {
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            fee: DETECTED_FEE_TIER,
+            recipient: userAddress,
+            deadline: deadline,
+            amountIn: ethers.parseEther(amountIn.toString()),
+            amountOutMinimum: amountOutMinimum,
+            sqrtPriceLimitX96: 0
+        };
+        
+        const txOptions = isEthSwap 
+            ? { value: ethers.parseEther(amountIn.toString()) }
+            : {};
+        
+        const tx = await router.exactInputSingle(txParams, txOptions);
         
         console.log('📤 Transaction sent:', tx.hash);
         console.log('⏳ Waiting for confirmation...');
@@ -362,4 +388,52 @@ async function executeSwap(amountIn, amountOutWei) {
         
         throw new Error(errorMsg);
     }
+}
+
+// ============================================
+// SWAP DIRECTION TOGGLE
+// ============================================
+function toggleSwapDirection() {
+    console.log('🔄 Toggling swap direction...');
+    
+    const labelFrom = document.getElementById('label-from');
+    const labelTo = document.getElementById('label-to');
+    const iconFrom = document.getElementById('icon-from');
+    const iconTo = document.getElementById('icon-to');
+    const inputFrom = document.getElementById('input-amount');
+    const inputTo = document.getElementById('output-amount');
+    
+    if (swapDirection === 'ETH_TO_QWEN') {
+        // Switch to QWEN → ETH
+        swapDirection = 'QWEN_TO_ETH';
+        
+        labelFrom.innerText = 'QWEN';
+        labelTo.innerText = 'ETH';
+        iconFrom.src = 'https://cdn-icons-png.flaticon.com/512/6132/6132976.png';
+        iconTo.src = 'https://cryptologos.cc/logos/ethereum-eth-logo.png';
+        
+        document.getElementById('balance-from').innerText = document.getElementById('modal-bal-QWEN').innerText;
+        document.getElementById('balance-to').innerText = document.getElementById('modal-bal-ETH').innerText;
+    } else {
+        // Switch to ETH → QWEN
+        swapDirection = 'ETH_TO_QWEN';
+        
+        labelFrom.innerText = 'ETH';
+        labelTo.innerText = 'QWEN';
+        iconFrom.src = 'https://cryptologos.cc/logos/ethereum-eth-logo.png';
+        iconTo.src = 'https://cdn-icons-png.flaticon.com/512/6132/6132976.png';
+        
+        document.getElementById('balance-from').innerText = document.getElementById('modal-bal-ETH').innerText;
+        document.getElementById('balance-to').innerText = document.getElementById('modal-bal-QWEN').innerText;
+    }
+    
+    // Clear inputs
+    inputFrom.value = '';
+    inputTo.value = '0.0';
+    
+    // Reset price display
+    document.getElementById('price-info').innerText = '?? ' + (swapDirection === 'ETH_TO_QWEN' ? 'QWEN' : 'ETH');
+    document.getElementById('price-per-token').innerHTML = `<span class="text-yellow-400">●</span> Detecting pool...`;
+    
+    console.log('✅ Swap direction changed to:', swapDirection);
 }
