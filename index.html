@@ -11,10 +11,6 @@
     <!-- Ethers.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     
-    <!-- Reown AppKit (WalletConnect) -->
-    <script src="https://unpkg.com/@reown/appkit@1.5.0/dist/index.js"></script>
-    <script src="https://unpkg.com/@reown/appkit-adapter-ethers@1.5.0/dist/index.js"></script>
-    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -40,33 +36,33 @@
 </head>
 <body class="text-white antialiased selection:bg-brand-primary selection:text-white">
 
-    <!-- NAVBAR -->
-    <nav class="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div class="flex items-center gap-3">
-            <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" alt="Qwen Logo" class="w-10 h-10 drop-shadow-lg">
-            <span class="text-xl font-bold tracking-wide text-white">Qwen DAO</span>
-        </div>
+<!-- NAVBAR -->
+<nav class="flex justify-between items-center p-6 max-w-7xl mx-auto">
+    <div class="flex items-center gap-3">
+        <img src="https://cdn-icons-png.flaticon.com/512/6132/6132976.png" alt="Qwen Logo" class="w-10 h-10 drop-shadow-lg">
+        <span class="text-xl font-bold tracking-wide text-white">Qwen DAO</span>
+    </div>
 
-        <div class="hidden md:flex bg-slate-800/60 rounded-full p-1.5 backdrop-blur-md border border-slate-700/50">
-            <button onclick="switchTab('swap')" id="btn-swap" class="px-6 py-2 rounded-full text-sm font-medium bg-slate-700 text-white shadow-sm transition">Swap</button>
-            <button onclick="switchTab('pool')" id="btn-pool" class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Pool</button>
-            <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Bridge</button>
-            <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">About ↗</button>
-        </div>
+    <div class="hidden md:flex bg-slate-800/60 rounded-full p-1.5 backdrop-blur-md border border-slate-700/50">
+        <button onclick="switchTab('swap')" id="btn-swap" class="px-6 py-2 rounded-full text-sm font-medium bg-slate-700 text-white shadow-sm transition">Swap</button>
+        <button onclick="switchTab('pool')" id="btn-pool" class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Pool</button>
+        <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">Bridge</button>
+        <button class="px-6 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white transition">About ↗</button>
+    </div>
 
-        <div class="flex items-center gap-4">
-            <div class="hidden md:flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700 hover:border-slate-600 cursor-pointer transition">
-                <div class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                <span class="text-sm font-medium text-slate-200">Sepolia</span>
-                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-            
-            <!-- CONNECT WALLET BUTTON (MANUAL - PASTI MUNCUL) -->
-            <button id="connectBtn" onclick="openConnectModal()" class="bg-brand-primary hover:bg-brand-primaryHover text-white font-bold py-2.5 px-6 rounded-full transition shadow-lg">
-                Connect Wallet
-            </button>
+    <div class="flex items-center gap-4">
+        <div class="hidden md:flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700 hover:border-slate-600 cursor-pointer transition">
+            <div class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+            <span class="text-sm font-medium text-slate-200">Sepolia</span>
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
-    </nav>
+        
+        <!-- CONNECT WALLET BUTTON -->
+        <button id="connectBtn" onclick="connectWallet()" class="bg-brand-primary hover:bg-brand-primaryHover text-white font-bold py-2.5 px-6 rounded-full transition shadow-lg">
+            Connect Wallet
+        </button>
+    </div>
+</nav>
 
     <!-- MAIN CONTENT -->
     <main class="flex flex-col items-center justify-center mt-8 px-4 relative">
