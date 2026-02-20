@@ -4,117 +4,48 @@ let isSwapping = false;
 let isFetchingPrice = false;
 let priceDebounceTimer = null;
 let isPoolDetecting = false;
-let appkit = null;
 
 // ============================================
-// REOWN APPKIT CONFIGURATION
+// CONNECT WALLET (DIRECT METAMASK)
 // ============================================
-const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; 
-
-async function initReownAppKit() {
+async function connectWallet() {
+    const btn = document.getElementById('connectBtn');
+    
+    if (typeof window.ethereum === 'undefined') {
+        alert('⚠️ MetaMask tidak terinstall!\n\nSilakan install MetaMask dulu:\nhttps://metamask.io/download/');
+        window.open('https://metamask.io/download/', '_blank');
+        return;
+    }
+    
     try {
-        console.log('🔄 Initializing Reown AppKit...');
-        console.log('Project ID:', REOWN_PROJECT_ID);
+        btn.innerText = 'Connecting...';
+        btn.disabled = true;
         
-        const { createAppKit } = window.AppKit;
-        const { EthersAdapter } = window.AppKitAdapterEthers;
+        // Request account access
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
         
-        if (!createAppKit) {
-            console.error('❌ window.AppKit not found');
-            return false;
-        }
+        // Update button
+        const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+        btn.innerText = shortAddr;
+        btn.disabled = false;
+        btn.classList.remove('bg-brand-primary', 'hover:bg-brand-primaryHover');
+        btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
         
-        if (!EthersAdapter) {
-            console.error('❌ window.AppKitAdapterEthers not found');
-            return false;
-        }
+        console.log('✅ Wallet connected:', userAddress);
         
-        const ethersAdapter = new EthersAdapter();
-        
-        appkit = createAppKit({
-            adapters: [ethersAdapter],
-            projectId: REOWN_PROJECT_ID,
-            networks: [
-                {
-                    id: 11155111,
-                    name: 'Sepolia',
-                    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                    rpcUrl: 'https://rpc.sepolia.org',
-                    blockExplorerUrl: 'https://sepolia.etherscan.io'
-                }
-            ],
-            defaultNetwork: { id: 11155111, name: 'Sepolia' },
-            themeMode: 'dark',
-            themeVariables: {
-                '--w3m-accent': '#6366f1',
-                '--w3m-color-mix': '#6366f1'
-            },
-            metadata: {
-                name: 'Qwen DAO',
-                description: 'Qwen DAO DEX on Sepolia',
-                url: window.location.origin,
-                icons: ['https://cdn-icons-png.flaticon.com/512/6132/6132976.png']
-            }
-        });
-        
-        console.log('✅ Reown AppKit initialized successfully');
-        
-        window.addEventListener('appkit:account', async (event) => {
-            const account = event.detail;
-            if (account && account.address) {
-                userAddress = account.address;
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                await onWalletConnected();
-            }
-        });
-        
-        window.addEventListener('appkit:disconnect', () => {
-            userAddress = null;
-            provider = null;
-            signer = null;
-            console.log('🔌 Wallet disconnected');
-        });
-        
-        return true;
+        // Detect pool & fetch balances
+        await detectPool();
+        await fetchBalances();
+        updatePoolStatusUI(POOL_EXISTS);
         
     } catch (error) {
-        console.error('❌ Reown initialization failed:', error);
-        return false;
+        console.error('❌ Connection failed:', error);
+        alert('Gagal connect wallet: ' + error.message);
+        btn.innerText = 'Connect Wallet';
+        btn.disabled = false;
     }
-}
-
-// ============================================
-// OPEN CONNECT MODAL (Reown)
-// ============================================
-function openConnectModal() {
-    console.log('🔑 Opening connect modal...');
-    console.log('AppKit status:', appkit);
-    
-    if (appkit) {
-        appkit.open();
-    } else {
-        console.error('❌ AppKit not initialized');
-        alert('⚠️ Wallet connect belum siap!\n\nCek console browser untuk detail error.');
-    }
-}
-
-// ============================================
-// WALLET CONNECTED CALLBACK
-// ============================================
-async function onWalletConnected() {
-    const btn = document.getElementById('connectBtn');
-    const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
-    
-    btn.innerText = shortAddr;
-    btn.classList.remove('bg-brand-primary', 'hover:bg-brand-primaryHover');
-    btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-    
-    console.log(`✅ Wallet connected: ${userAddress}`);
-    
-    await detectPool();
-    await fetchBalances();
-    updatePoolStatusUI(POOL_EXISTS);
 }
 
 // ============================================
