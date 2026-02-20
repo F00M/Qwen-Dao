@@ -3,8 +3,106 @@ let provider, signer, userAddress;
 let isSwapping = false;
 let isFetchingPrice = false;
 let priceDebounceTimer = null;
+let isPoolDetecting = false;
 
-// Connect Wallet
+// ============================================
+// AUTO-DETECT POOL (BARU!)
+// ============================================
+async function detectPool() {
+    if (isPoolDetecting || !provider) return false;
+    
+    isPoolDetecting = true;
+    console.log("🔍 Detecting pool for QWEN/WETH...");
+    
+    try {
+        const factory = new ethers.Contract(CONTRACTS.Factory, FACTORY_ABI, provider);
+        
+        // Check each fee tier to find existing pool
+        for (const fee of FEE_TIERS) {
+            try {
+                const poolAddress = await factory.getPool(
+                    CONTRACTS.WETH,
+                    CONTRACTS.QWEN,
+                    fee
+                );
+                
+                // If pool address is not zero address, pool exists!
+                if (poolAddress && poolAddress !== "0x0000000000000000000000000000000000000000") {
+                    DETECTED_POOL_ADDRESS = poolAddress;
+                    DETECTED_FEE_TIER = fee;
+                    POOL_EXISTS = true;
+                    
+                    console.log(`✅ Pool detected!`);
+                    console.log(`   Address: ${poolAddress}`);
+                    console.log(`   Fee Tier: ${getFeeTierLabel(fee)} (${fee})`);
+                    
+                    // Get additional pool info
+                    await getPoolInfo(poolAddress);
+                    
+                    isPoolDetecting = false;
+                    return true;
+                }
+            } catch (err) {
+                // Pool doesn't exist for this fee tier, continue checking
+                continue;
+            }
+        }
+        
+        // No pool found
+        POOL_EXISTS = false;
+        console.log("❌ No pool found for QWEN/WETH pair");
+        isPoolDetecting = false;
+        return false;
+        
+    } catch (error) {
+        console.error("Error detecting pool:", error);
+        isPoolDetecting = false;
+        return false;
+    }
+}
+
+// Get Pool Info (liquidity, price, etc.)
+async function getPoolInfo(poolAddress) {
+    try {
+        const pool = new ethers.Contract(poolAddress, POOL_ABI, provider);
+        
+        // Get liquidity
+        const liquidity = await pool.liquidity();
+        console.log(`💧 Pool Liquidity: ${liquidity.toString()}`);
+        
+        // Get slot0 for current price
+        const slot0 = await pool.slot0();
+        console.log(`📊 Current Tick: ${slot0.tick}`);
+        
+        // Update UI with pool info
+        updatePoolStatusUI(true);
+        
+    } catch (error) {
+        console.error("Error getting pool info:", error);
+        updatePoolStatusUI(false);
+    }
+}
+
+// Update UI with pool status
+function updatePoolStatusUI(poolExists) {
+    const pricePerToken = document.getElementById('price-per-token');
+    
+    if (poolExists && DETECTED_FEE_TIER) {
+        pricePerToken.innerHTML = `
+            <span class="text-green-400">●</span> 
+            Pool Active @ ${getFeeTierLabel(DETECTED_FEE_TIER)}
+        `;
+    } else {
+        pricePerToken.innerHTML = `
+            <span class="text-red-400">●</span> 
+            No Pool Found - Create Pool First
+        `;
+    }
+}
+
+// ============================================
+// CONNECT WALLET
+// ============================================
 async function connectWallet() {
     const btn = document.getElementById('connectBtn');
     
@@ -19,7 +117,10 @@ async function connectWallet() {
             btn.classList.add('bg-slate-800', 'text-white', 'border', 'border-slate-600');
             btn.classList.remove('bg-slate-200', 'text-slate-900');
             
+            // Detect pool after wallet connect
+            await detectPool();
             await fetchBalances();
+            
             console.log("✅ Wallet connected:", userAddress);
         } catch (error) {
             console.error("❌ Connection failed:", error);
@@ -30,7 +131,9 @@ async function connectWallet() {
     }
 }
 
-// Fetch Token Balances
+// ============================================
+// FETCH TOKEN BALANCES
+// ============================================
 async function fetchBalances() {
     if(!userAddress) return;
 
@@ -55,9 +158,25 @@ async function fetchBalances() {
     }
 }
 
-// Fetch Real-Time Price from Uniswap
+// ============================================
+// FETCH REAL-TIME PRICE FROM UNISWAP
+// ============================================
 async function fetchPriceFromUniswap(amountIn) {
     if (!provider || isFetchingPrice) return null;
+    
+    // Check if pool exists first
+    if (!POOL_EXISTS) {
+        await detectPool(); // Re-detect in case pool was created
+    }
+    
+    if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
+        const priceInfo = document.getElementById('price-info');
+        const pricePerToken = document.getElementById('price-per-token');
+        priceInfo.innerText = "No Liquidity Pool";
+        priceInfo.classList.add('text-red-400');
+        pricePerToken.innerHTML = `<span class="text-red-400">●</span> Create Pool First`;
+        return null;
+    }
     
     isFetchingPrice = true;
     const priceInfo = document.getElementById('price-info');
@@ -71,7 +190,7 @@ async function fetchPriceFromUniswap(amountIn) {
             tokenIn: CONTRACTS.WETH,
             tokenOut: CONTRACTS.QWEN,
             amountIn: amountInWei,
-            fee: FEE_TIER,
+            fee: DETECTED_FEE_TIER, // Auto-detected fee tier
             sqrtPriceLimitX96: 0
         });
         
@@ -80,11 +199,14 @@ async function fetchPriceFromUniswap(amountIn) {
         const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
         
         priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
-        priceInfo.classList.remove('loading-text', 'text-slate-400');
+        priceInfo.classList.remove('loading-text', 'text-slate-400', 'text-red-400');
         priceInfo.classList.add('text-brand-primary');
         
         const pricePerEth = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(2);
-        pricePerToken.innerText = `1 ETH = ${parseFloat(pricePerEth).toLocaleString()} QWEN`;
+        pricePerToken.innerHTML = `
+            <span class="text-green-400">●</span> 
+            1 ETH = ${parseFloat(pricePerEth).toLocaleString()} QWEN (@ ${getFeeTierLabel(DETECTED_FEE_TIER)})
+        `;
         
         isFetchingPrice = false;
         return amountOut;
@@ -93,15 +215,18 @@ async function fetchPriceFromUniswap(amountIn) {
         console.error("Error fetching price:", error);
         priceInfo.innerText = "Price unavailable";
         priceInfo.classList.add('loading-text', 'text-slate-400');
-        pricePerToken.innerText = "1 ETH = ?? QWEN";
+        pricePerToken.innerHTML = `<span class="text-yellow-400">●</span> Error fetching price`;
         isFetchingPrice = false;
         return null;
     }
 }
 
-// Execute Swap
+// ============================================
+// EXECUTE SWAP
+// ============================================
 async function executeSwap(amountIn, amountOutMinimum) {
     if (!signer) throw new Error("Wallet not connected");
+    if (!POOL_EXISTS || !DETECTED_FEE_TIER) throw new Error("No liquidity pool found");
     
     const router = new ethers.Contract(CONTRACTS.Router, ROUTER_ABI, signer);
     
@@ -109,15 +234,15 @@ async function executeSwap(amountIn, amountOutMinimum) {
         {
             tokenIn: CONTRACTS.WETH,
             tokenOut: CONTRACTS.QWEN,
-            fee: FEE_TIER,
+            fee: DETECTED_FEE_TIER, // Auto-detected fee tier
             recipient: userAddress,
-            deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes
+            deadline: Math.floor(Date.now() / 1000) + 60 * 20,
             amountIn: ethers.parseEther(amountIn.toString()),
             amountOutMinimum: ethers.parseEther(amountOutMinimum.toString()),
             sqrtPriceLimitX96: 0
         },
         {
-            value: ethers.parseEther(amountIn.toString()) // Send ETH with transaction
+            value: ethers.parseEther(amountIn.toString())
         }
     );
     
