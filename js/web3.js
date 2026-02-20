@@ -1,17 +1,22 @@
-// Web3 State
+// ============================================
+// WEB3 STATE (SEMUA VARIABEL DI SINI)
+// ============================================
 let provider, signer, userAddress;
 let isSwapping = false;
 let isFetchingPrice = false;
 let priceDebounceTimer = null;
 let isPoolDetecting = false;
 
-// Pool token info
+// Pool info (HANYA di web3.js)
+let DETECTED_POOL_ADDRESS = null;
+let DETECTED_FEE_TIER = null;
+let POOL_EXISTS = false;
 let POOL_TOKEN0 = null;
 let POOL_TOKEN1 = null;
 let TOKEN_IN_IS_TOKEN0 = false;
 
 // ============================================
-// CONNECT WALLET (DIRECT METAMASK)
+// CONNECT WALLET
 // ============================================
 async function connectWallet() {
     const btn = document.getElementById('connectBtn');
