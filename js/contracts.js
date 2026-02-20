@@ -21,15 +21,13 @@ const TOKEN_DECIMALS = {
     QWEN: 18
 };
 
-// Detected pool info
-let DETECTED_POOL_ADDRESS = CONTRACTS.QWEN_WETH_POOL;
-let DETECTED_FEE_TIER = 3000;
-let POOL_EXISTS = true;
-
-// Pool token order
-let POOL_TOKEN0 = null;
-let POOL_TOKEN1 = null;
-let TOKEN_IN_IS_TOKEN0 = false;
+// ✅ HAPUS INI (jangan ada di contracts.js):
+// let DETECTED_POOL_ADDRESS = ...
+// let DETECTED_FEE_TIER = ...
+// let POOL_EXISTS = ...
+// let POOL_TOKEN0 = ...
+// let POOL_TOKEN1 = ...
+// let TOKEN_IN_IS_TOKEN0 = ...
 
 // ABIs
 const FACTORY_ABI = [
