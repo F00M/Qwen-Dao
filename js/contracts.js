@@ -8,10 +8,10 @@ const CONTRACTS = {
     PositionManager: "0x1238536071E1c677A632429e3655c799b22cDA52"
 };
 
-// Fee Tiers Uniswap V3 (akan di-check satu per satu)
+// Fee Tiers Uniswap V3
 const FEE_TIERS = [100, 500, 3000, 10000];
 
-// Detected pool info (akan di-set otomatis)
+// Detected pool info
 let DETECTED_POOL_ADDRESS = null;
 let DETECTED_FEE_TIER = null;
 let POOL_EXISTS = false;
