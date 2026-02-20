@@ -9,15 +9,30 @@ let appkit = null;
 // ============================================
 // REOWN APPKIT CONFIGURATION
 // ============================================
-const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
+// ⚠️ WAJIB GANTI INI DENGAN PROJECT ID DARI cloud.reown.com
+const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; 
 
 async function initReownAppKit() {
     try {
+        console.log('🔄 Initializing Reown AppKit...');
+        console.log('Project ID:', REOWN_PROJECT_ID);
+        
         const { createAppKit } = window.AppKit;
         const { EthersAdapter } = window.AppKitAdapterEthers;
         
-        if (!createAppKit || !EthersAdapter) {
-            console.error('❌ Reown scripts not loaded');
+        if (!createAppKit) {
+            console.error('❌ window.AppKit not found');
+            return false;
+        }
+        
+        if (!EthersAdapter) {
+            console.error('❌ window.AppKitAdapterEthers not found');
+            return false;
+        }
+        
+        if (REOWN_PROJECT_ID === 'YOUR_PROJECT_ID') {
+            console.error('❌ Project ID belum diganti! Daftar di cloud.reown.com');
+            alert('⚠️ Project ID belum dikonfigurasi!\n\n1. Buka cloud.reown.com\n2. Daftar/Login\n3. Create Project\n4. Copy Project ID\n5. Paste di file js/web3.js baris 11');
             return false;
         }
         
@@ -49,7 +64,7 @@ async function initReownAppKit() {
             }
         });
         
-        console.log('✅ Reown AppKit initialized');
+        console.log('✅ Reown AppKit initialized successfully');
         
         // Listen for account changes
         window.addEventListener('appkit:account', async (event) => {
@@ -72,7 +87,7 @@ async function initReownAppKit() {
         return true;
         
     } catch (error) {
-        console.error('❌ Reown failed:', error);
+        console.error('❌ Reown initialization failed:', error);
         return false;
     }
 }
@@ -81,10 +96,14 @@ async function initReownAppKit() {
 // OPEN CONNECT MODAL (Reown)
 // ============================================
 function openConnectModal() {
+    console.log('🔑 Opening connect modal...');
+    console.log('AppKit status:', appkit);
+    
     if (appkit) {
         appkit.open();
     } else {
-        alert('Wallet connect is loading. Please try again in a moment.');
+        console.error('❌ AppKit not initialized');
+        alert('⚠️ Wallet connect belum siap!\n\nCek console browser untuk detail error.\n\nKemungkinan:\n1. Project ID belum diganti\n2. Reown script gagal load\n3. Internet bermasalah');
     }
 }
 
@@ -95,7 +114,6 @@ async function onWalletConnected() {
     const btn = document.getElementById('connectBtn');
     const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
     
-    // Update button to show wallet address
     btn.innerText = shortAddr;
     btn.classList.remove('bg-brand-primary', 'hover:bg-brand-primaryHover');
     btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
