@@ -15,6 +15,9 @@ let POOL_TOKEN0 = null;
 let POOL_TOKEN1 = null;
 let TOKEN_IN_IS_TOKEN0 = false;
 
+// Slippage tolerance (0.5% = 50 basis points)
+const SLIPPAGE_BPS = 50; // 0.5%
+
 // ============================================
 // CONNECT WALLET
 // ============================================
@@ -213,9 +216,6 @@ async function fetchPriceFromUniswap(amountIn) {
     console.log('🔍 Fetching price...');
     console.log('POOL_EXISTS:', POOL_EXISTS);
     console.log('DETECTED_FEE_TIER:', DETECTED_FEE_TIER);
-    console.log('POOL_TOKEN0:', POOL_TOKEN0);
-    console.log('POOL_TOKEN1:', POOL_TOKEN1);
-    console.log('TOKEN_IN_IS_TOKEN0:', TOKEN_IN_IS_TOKEN0);
     console.log('Amount In:', amountIn);
     
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
@@ -250,16 +250,17 @@ async function fetchPriceFromUniswap(amountIn) {
         console.log('✅ QuoterV2 result:', quote.amountOut.toString());
         
         if (quote.amountOut === 0n) {
-            console.warn('⚠️ QuoterV2 returned 0! Trying fallback price from pool...');
-            await fetchPriceFromPool(amountIn);
+            console.warn('⚠️ QuoterV2 returned 0!');
+            
+            priceInfo.innerText = "No Liquidity";
+            priceInfo.classList.add('text-red-400');
+            pricePerToken.innerHTML = `<span class="text-red-400">●</span> Pool kosong`;
             isFetchingPrice = false;
             return null;
         }
         
         const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
         const qwenDecimals = await qwenContract.decimals();
-        
-        console.log('QWEN Decimals:', qwenDecimals);
         
         const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
         
@@ -276,13 +277,17 @@ async function fetchPriceFromUniswap(amountIn) {
         `;
         
         isFetchingPrice = false;
-        return amountOut;
+        return {
+            amountOut: amountOut,
+            amountOutWei: quote.amountOut
+        };
         
     } catch (error) {
         console.error("❌ QuoterV2 failed:", error);
-        console.log('⚠️ Trying fallback price from pool...');
         
-        await fetchPriceFromPool(amountIn);
+        priceInfo.innerText = "Price unavailable";
+        priceInfo.classList.add('loading-text', 'text-slate-400');
+        pricePerToken.innerHTML = `<span class="text-yellow-400">●</span> ${error.message}`;
         
         isFetchingPrice = false;
         return null;
@@ -290,117 +295,74 @@ async function fetchPriceFromUniswap(amountIn) {
 }
 
 // ============================================
-// FALLBACK: FETCH PRICE FROM POOL SLOT0
+// EXECUTE SWAP (FIXED WITH SLIPPAGE)
 // ============================================
-async function fetchPriceFromPool(amountIn) {
-    console.log('🔄 Calculating price from pool slot0...');
-    
-    try {
-        const pool = new ethers.Contract(CONTRACTS.QWEN_WETH_POOL, POOL_ABI, provider);
-        const slot0 = await pool.slot0();
-        const liquidity = await pool.liquidity();
-        
-        console.log('Pool slot0:', slot0);
-        console.log('Pool liquidity:', liquidity.toString());
-        
-        const sqrtPriceX96 = slot0.sqrtPriceX96;
-        const tick = slot0.tick;
-        
-        console.log('sqrtPriceX96:', sqrtPriceX96.toString());
-        console.log('tick:', tick);
-        
-        if (liquidity === 0n) {
-            console.warn('⚠️ Pool liquidity is 0! No price available.');
-            
-            const priceInfo = document.getElementById('price-info');
-            const pricePerToken = document.getElementById('price-per-token');
-            
-            priceInfo.innerText = "No Liquidity";
-            priceInfo.classList.add('text-red-400');
-            pricePerToken.innerHTML = `
-                <span class="text-red-400">●</span> 
-                Pool kosong - Tambah liquidity dulu
-            `;
-            return null;
-        }
-        
-        const price = (sqrtPriceX96 * sqrtPriceX96) / (2n ** 192n);
-        
-        console.log('Raw price from pool:', price.toString());
-        
-        const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
-        const qwenDecimals = await qwenContract.decimals();
-        
-        let adjustedPrice;
-        if (TOKEN_IN_IS_TOKEN0) {
-            adjustedPrice = price / (10n ** BigInt(18 - qwenDecimals));
-        } else {
-            adjustedPrice = (2n ** 192n) / price / (10n ** BigInt(18 - qwenDecimals));
-        }
-        
-        console.log('Adjusted price:', adjustedPrice.toString());
-        
-        const priceFloat = parseFloat(ethers.formatUnits(adjustedPrice, 0));
-        const amountOut = amountIn * priceFloat;
-        
-        console.log('Amount Out (fallback):', amountOut);
-        
-        const priceInfo = document.getElementById('price-info');
-        const pricePerToken = document.getElementById('price-per-token');
-        
-        priceInfo.innerText = amountOut.toLocaleString() + " QWEN";
-        priceInfo.classList.remove('loading-text', 'text-slate-400', 'text-red-400');
-        priceInfo.classList.add('text-brand-primary');
-        
-        pricePerToken.innerHTML = `
-            <span class="text-yellow-400">●</span> 
-            1 ETH = ${priceFloat.toLocaleString()} QWEN (@ ${getFeeTierLabel(DETECTED_FEE_TIER)}) [Pool Price]
-        `;
-        
-        return amountOut.toString();
-        
-    } catch (error) {
-        console.error("❌ Fallback price failed:", error);
-        
-        const priceInfo = document.getElementById('price-info');
-        const pricePerToken = document.getElementById('price-per-token');
-        
-        priceInfo.innerText = "Price unavailable";
-        priceInfo.classList.add('text-slate-400');
-        pricePerToken.innerHTML = `
-            <span class="text-red-400">●</span> 
-            Gagal ambil harga: ${error.message}
-        `;
-        
-        return null;
-    }
-}
-
-// ============================================
-// EXECUTE SWAP
-// ============================================
-async function executeSwap(amountIn, amountOutMinimum) {
+async function executeSwap(amountIn, amountOutWei) {
     if (!signer) throw new Error("Wallet not connected");
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) throw new Error("No liquidity pool found");
+    if (!amountOutWei) throw new Error("Amount out not calculated");
+    
+    console.log('🔄 Executing swap...');
+    console.log('Amount In:', amountIn);
+    console.log('Amount Out Wei:', amountOutWei.toString());
+    console.log('Fee Tier:', DETECTED_FEE_TIER);
+    
+    // Calculate minimum amount out with slippage tolerance
+    // amountOutMinimum = amountOut * (10000 - slippageBPS) / 10000
+    const slippageMultiplier = 10000 - SLIPPAGE_BPS;
+    const amountOutMinimum = (amountOutWei * BigInt(slippageMultiplier)) / 10000n;
+    
+    console.log('Slippage BPS:', SLIPPAGE_BPS);
+    console.log('Amount Out Minimum:', amountOutMinimum.toString());
     
     const router = new ethers.Contract(CONTRACTS.Router, ROUTER_ABI, signer);
     
-    const tx = await router.exactInputSingle(
-        {
-            tokenIn: CONTRACTS.WETH,
-            tokenOut: CONTRACTS.QWEN,
-            fee: DETECTED_FEE_TIER,
-            recipient: userAddress,
-            deadline: Math.floor(Date.now() / 1000) + 60 * 20,
-            amountIn: ethers.parseEther(amountIn.toString()),
-            amountOutMinimum: ethers.parseEther(amountOutMinimum.toString()),
-            sqrtPriceLimitX96: 0
-        },
-        {
-            value: ethers.parseEther(amountIn.toString())
-        }
-    );
+    // Deadline: 20 minutes from now
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
     
-    await tx.wait();
-    return tx.hash;
+    console.log('Deadline:', deadline);
+    console.log('Token In:', CONTRACTS.WETH);
+    console.log('Token Out:', CONTRACTS.QWEN);
+    
+    try {
+        const tx = await router.exactInputSingle(
+            {
+                tokenIn: CONTRACTS.WETH,
+                tokenOut: CONTRACTS.QWEN,
+                fee: DETECTED_FEE_TIER,
+                recipient: userAddress,
+                deadline: deadline,
+                amountIn: ethers.parseEther(amountIn.toString()),
+                amountOutMinimum: amountOutMinimum,
+                sqrtPriceLimitX96: 0
+            },
+            {
+                value: ethers.parseEther(amountIn.toString())
+            }
+        );
+        
+        console.log('📤 Transaction sent:', tx.hash);
+        console.log('⏳ Waiting for confirmation...');
+        
+        const receipt = await tx.wait();
+        
+        console.log('✅ Transaction confirmed!');
+        console.log('Tx Hash:', receipt.hash);
+        console.log('Gas Used:', receipt.gasUsed.toString());
+        
+        return receipt.hash;
+        
+    } catch (error) {
+        console.error('❌ Swap transaction failed:', error);
+        
+        // More detailed error message
+        let errorMsg = error.message;
+        if (error.code === 'CALL_EXCEPTION') {
+            errorMsg = 'Transaksi gagal - kemungkinan slippage terlalu rendah atau liquidity tidak cukup';
+        } else if (error.reason) {
+            errorMsg = error.reason;
+        }
+        
+        throw new Error(errorMsg);
+    }
 }
