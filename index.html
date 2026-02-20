@@ -74,16 +74,35 @@
                     <h2 class="text-xl font-semibold text-slate-200">Swap</h2>
                     <div class="relative">
                         <button onclick="toggleSettings()" class="text-slate-400 hover:text-white transition p-2 hover:bg-slate-800 rounded-full">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
                         </button>
 
                         <!-- SETTINGS MODAL -->
                         <div id="settings-modal" class="hidden absolute right-0 top-12 w-[320px] bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-4 z-50">
                             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                 <h3 class="font-semibold text-slate-200">Transaction Settings</h3>
-                                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
                             </div>
                             
+                            <!-- Pool Status Info -->
+                            <div class="mb-4 bg-slate-900 rounded-lg p-3 border border-slate-700">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm text-slate-400">Liquidity Pool</span>
+                                </div>
+                                <div id="pool-status-display" class="flex items-center gap-2">
+                                    <span class="text-xs text-slate-500">Detecting...</span>
+                                </div>
+                                <div id="pool-address-display" class="text-xs text-slate-600 mt-1 break-all"></div>
+                            </div>
+
+                            <!-- Slippage -->
                             <div class="mb-4">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm text-slate-400">Slippage tolerance</span>
@@ -97,6 +116,7 @@
                                 </div>
                             </div>
 
+                            <!-- Transaction Deadline -->
                             <div class="mb-4">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm text-slate-400">Transaction deadline</span>
@@ -107,6 +127,7 @@
                                 </div>
                             </div>
 
+                            <!-- Interface Settings -->
                             <div class="border-t border-slate-700 pt-3">
                                 <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Interface Settings</h4>
                                 
@@ -178,7 +199,9 @@
                 <!-- Price Per Token -->
                 <div class="mt-2 flex justify-between items-center px-2">
                     <span class="text-slate-500 text-xs">Price</span>
-                    <span class="text-slate-400 text-xs" id="price-per-token">1 ETH = ?? QWEN</span>
+                    <span class="text-slate-400 text-xs" id="price-per-token">
+                        <span class="text-yellow-400">●</span> Detecting pool...
+                    </span>
                 </div>
 
                 <!-- Action Button -->
@@ -206,7 +229,11 @@
         <div class="bg-slate-900 w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-white">Select a token</h3>
-                <button onclick="closeTokenModal()" class="text-slate-400 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <button onclick="closeTokenModal()" class="text-slate-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
             
             <input type="text" placeholder="Search name or paste address" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 px-4 mb-4 outline-none focus:border-brand-primary text-white placeholder-slate-500">
