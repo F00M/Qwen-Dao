@@ -5,9 +5,6 @@ let currentModalTarget = 'from';
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("🚀 Qwen DAO DEX Loaded");
     
-    // Initialize Reown AppKit first
-    await initReownAppKit();
-    
     // Auto-detect pool on page load
     if (typeof window.ethereum !== 'undefined') {
         provider = new ethers.BrowserProvider(window.ethereum);
@@ -121,7 +118,7 @@ function checkInputState() {
 // Handle Swap Button
 async function handleSwap() {
     if (!userAddress) {
-        openConnectModal();
+        connectWallet();
         return;
     }
 
