@@ -16,7 +16,7 @@ let POOL_TOKEN1 = null;
 let TOKEN_IN_IS_TOKEN0 = false;
 
 // Slippage tolerance (0.5% = 50 basis points)
-const SLIPPAGE_BPS = 50; // 0.5%
+const SLIPPAGE_BPS = 50;
 
 // ============================================
 // CONNECT WALLET
@@ -232,11 +232,12 @@ async function fetchPriceFromUniswap(amountIn) {
         const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
         const amountInWei = ethers.parseEther(amountIn.toString());
         
-        const tokenIn = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.WETH : CONTRACTS.QWEN;
-        const tokenOut = TOKEN_IN_IS_TOKEN0 ? CONTRACTS.QWEN : CONTRACTS.WETH;
+        // ✅ FIXED: Selalu WETH → QWEN (sesuai UI)
+        const tokenIn = CONTRACTS.WETH;
+        const tokenOut = CONTRACTS.QWEN;
         
-        console.log('Token In:', tokenIn);
-        console.log('Token Out:', tokenOut);
+        console.log('Token In (WETH):', tokenIn);
+        console.log('Token Out (QWEN):', tokenOut);
         console.log('Fee:', DETECTED_FEE_TIER);
         
         const quote = await quoter.quoteExactInputSingle.staticCall({
@@ -259,9 +260,8 @@ async function fetchPriceFromUniswap(amountIn) {
             return null;
         }
         
-        const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
-        const qwenDecimals = await qwenContract.decimals();
-        
+        // QWEN decimals = 18
+        const qwenDecimals = 18;
         const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
         
         console.log('Amount Out:', amountOut);
@@ -295,7 +295,7 @@ async function fetchPriceFromUniswap(amountIn) {
 }
 
 // ============================================
-// EXECUTE SWAP (FIXED WITH SLIPPAGE)
+// EXECUTE SWAP
 // ============================================
 async function executeSwap(amountIn, amountOutWei) {
     if (!signer) throw new Error("Wallet not connected");
@@ -307,8 +307,7 @@ async function executeSwap(amountIn, amountOutWei) {
     console.log('Amount Out Wei:', amountOutWei.toString());
     console.log('Fee Tier:', DETECTED_FEE_TIER);
     
-    // Calculate minimum amount out with slippage tolerance
-    // amountOutMinimum = amountOut * (10000 - slippageBPS) / 10000
+    // Calculate minimum amount out with slippage tolerance (0.5%)
     const slippageMultiplier = 10000 - SLIPPAGE_BPS;
     const amountOutMinimum = (amountOutWei * BigInt(slippageMultiplier)) / 10000n;
     
@@ -317,7 +316,6 @@ async function executeSwap(amountIn, amountOutWei) {
     
     const router = new ethers.Contract(CONTRACTS.Router, ROUTER_ABI, signer);
     
-    // Deadline: 20 minutes from now
     const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
     
     console.log('Deadline:', deadline);
@@ -355,10 +353,9 @@ async function executeSwap(amountIn, amountOutWei) {
     } catch (error) {
         console.error('❌ Swap transaction failed:', error);
         
-        // More detailed error message
         let errorMsg = error.message;
         if (error.code === 'CALL_EXCEPTION') {
-            errorMsg = 'Transaksi gagal - kemungkinan slippage terlalu rendah atau liquidity tidak cukup';
+            errorMsg = 'Transaksi gagal - slippage terlalu rendah atau liquidity tidak cukup';
         } else if (error.reason) {
             errorMsg = error.reason;
         }
