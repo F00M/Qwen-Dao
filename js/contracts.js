@@ -8,10 +8,27 @@ const CONTRACTS = {
     PositionManager: "0x1238536071E1c677A632429e3655c799b22cDA52"
 };
 
-// Fee tier (0.3%)
-const FEE_TIER = 3000;
+// Fee Tiers Uniswap V3 (akan di-check satu per satu)
+const FEE_TIERS = [100, 500, 3000, 10000];
+
+// Detected pool info (akan di-set otomatis)
+let DETECTED_POOL_ADDRESS = null;
+let DETECTED_FEE_TIER = null;
+let POOL_EXISTS = false;
 
 // ABIs
+const FACTORY_ABI = [
+    "function getPool(address tokenA, address tokenB, uint24 fee) view returns (address pool)"
+];
+
+const POOL_ABI = [
+    "function token0() view returns (address)",
+    "function token1() view returns (address)",
+    "function fee() view returns (uint24)",
+    "function liquidity() view returns (uint128)",
+    "function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)"
+];
+
 const QUOTER_ABI = [
     "function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)"
 ];
@@ -25,3 +42,14 @@ const ERC20_ABI = [
 const ROUTER_ABI = [
     "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256 amountOut)"
 ];
+
+// Helper function untuk get fee tier label
+function getFeeTierLabel(fee) {
+    const labels = {
+        100: "0.01%",
+        500: "0.05%",
+        3000: "0.3%",
+        10000: "1%"
+    };
+    return labels[fee] || "Unknown";
+}
