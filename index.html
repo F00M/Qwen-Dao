@@ -4,10 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Qwen DAO - Swap</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Ethers.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -15,48 +25,14 @@
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         brand: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            primary: '#6366f1', 
+                            primary: '#6366f1',
                             primaryHover: '#4f46e5',
-                            text: '#f8fafc'
                         }
                     }
                 }
             }
         }
     </script>
-    <style>
-        body { 
-            background: radial-gradient(circle at top center, #312e81 0%, #0f172a 60%); 
-            min-height: 100vh; 
-        }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        input[type=number] { -moz-appearance: textfield; }
-        .toggle-checkbox:checked { right: 0; border-color: #6366f1; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #6366f1; }
-        .toggle-checkbox { right: auto; left: 0; transition: all 0.3s; }
-        .toggle-checkbox:checked { left: 100%; margin-left: -20px; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        
-        /* Loading Animation */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .loading-text { animation: pulse 1.5s infinite; }
-    </style>
 </head>
 <body class="text-white antialiased selection:bg-brand-primary selection:text-white">
 
@@ -101,7 +77,7 @@
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         </button>
 
-                        <!-- SETTINGS MODAL POPUP -->
+                        <!-- SETTINGS MODAL -->
                         <div id="settings-modal" class="hidden absolute right-0 top-12 w-[320px] bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-4 z-50">
                             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                 <h3 class="font-semibold text-slate-200">Transaction Settings</h3>
@@ -135,21 +111,17 @@
                                 <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Interface Settings</h4>
                                 
                                 <div class="flex justify-between items-center mb-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm text-slate-300">Auto Router API</span>
-                                    </div>
-                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" checked name="toggle1" id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle1')"/>
+                                    <span class="text-sm text-slate-300">Auto Router API</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input type="checkbox" checked id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle1')"/>
                                         <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
                                     </div>
                                 </div>
 
                                 <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm text-slate-300">Expert Mode</span>
-                                    </div>
-                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle2" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle2')"/>
+                                    <span class="text-sm text-slate-300">Expert Mode</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input type="checkbox" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 left-0" onclick="toggleSwitch('toggle2')"/>
                                         <label for="toggle2" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer"></label>
                                     </div>
                                 </div>
@@ -277,273 +249,9 @@
         </div>
     </div>
 
-    <script>
-        // --- CONTRACT CONFIGURATION ---
-        const CONTRACTS = {
-            QWEN: "0x7ff367a947f0c01843732a74193022e2e9f261fa",
-            WETH: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14",
-            Router: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
-            QuoterV2: "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3"
-        };
-
-        // ABI Minimal untuk QuoterV2
-        const QUOTER_ABI = [
-            "function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)"
-        ];
-
-        const ERC20_ABI = [
-            "function balanceOf(address owner) view returns (uint256)",
-            "function decimals() view returns (uint8)",
-            "function symbol() view returns (string)"
-        ];
-
-        // Fee tier Uniswap V3 (paling umum 3000 = 0.3%)
-        const FEE_TIER = 3000;
-
-        let provider, signer, userAddress;
-        let currentModalTarget = 'from';
-        let isSwapping = false;
-        let isFetchingPrice = false;
-        let priceDebounceTimer = null;
-
-        // --- UI FUNCTIONS ---
-        function switchTab(tab) {
-            const swapView = document.getElementById('view-swap');
-            const poolView = document.getElementById('view-pool');
-            const btnSwap = document.getElementById('btn-swap');
-            const btnPool = document.getElementById('btn-pool');
-
-            if (tab === 'swap') {
-                swapView.classList.remove('hidden');
-                poolView.classList.add('hidden');
-                btnSwap.classList.replace('text-slate-400', 'text-white');
-                btnSwap.classList.add('bg-slate-700');
-                btnPool.classList.replace('text-white', 'text-slate-400');
-                btnPool.classList.remove('bg-slate-700');
-            } else {
-                swapView.classList.add('hidden');
-                poolView.classList.remove('hidden');
-                btnPool.classList.replace('text-slate-400', 'text-white');
-                btnPool.classList.add('bg-slate-700');
-                btnSwap.classList.replace('text-white', 'text-slate-400');
-                btnSwap.classList.remove('bg-slate-700');
-            }
-        }
-
-        function toggleSettings() {
-            const modal = document.getElementById('settings-modal');
-            modal.classList.toggle('hidden');
-        }
-
-        document.addEventListener('click', function(event) {
-            const modal = document.getElementById('settings-modal');
-            const btn = document.querySelector('button[onclick="toggleSettings()"]');
-            if (modal && btn && !modal.contains(event.target) && !btn.contains(event.target) && !modal.classList.contains('hidden')) {
-                modal.classList.add('hidden');
-            }
-        });
-
-        function toggleSwitch(id) {
-            const checkbox = document.getElementById(id);
-            const isChecked = checkbox.checked;
-            console.log(`${id} is now ${isChecked ? 'ON' : 'OFF'}`);
-        }
-
-        function openTokenModal(target) {
-            currentModalTarget = target;
-            document.getElementById('token-modal').classList.remove('hidden');
-            updateBalancesInModal();
-        }
-
-        function closeTokenModal() {
-            document.getElementById('token-modal').classList.add('hidden');
-        }
-
-        function selectToken(symbol) {
-            const labelEl = document.getElementById(`label-${currentModalTarget}`);
-            const iconEl = document.getElementById(`icon-${currentModalTarget}`);
-            
-            labelEl.innerText = symbol;
-            
-            if(symbol === 'ETH') iconEl.src = "https://cryptologos.cc/logos/ethereum-eth-logo.png";
-            else if(symbol === 'QWEN') iconEl.src = "https://cdn-icons-png.flaticon.com/512/6132/6132976.png";
-
-            closeTokenModal();
-            checkInputState();
-        }
-
-        // --- FITUR BARU: FETCH REAL-TIME PRICE DARI UNISWAP ---
-        async function fetchPriceFromUniswap(amountIn) {
-            if (!provider || isFetchingPrice) return null;
-            
-            isFetchingPrice = true;
-            const priceInfo = document.getElementById('price-info');
-            const pricePerToken = document.getElementById('price-per-token');
-            
-            try {
-                // Setup Quoter Contract
-                const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
-                
-                // Convert amount to wei (ETH has 18 decimals)
-                const amountInWei = ethers.parseEther(amountIn.toString());
-                
-                // Call QuoterV2
-                const quote = await quoter.quoteExactInputSingle({
-                    tokenIn: CONTRACTS.WETH, // ETH -> WETH for Uniswap
-                    tokenOut: CONTRACTS.QWEN,
-                    amountIn: amountInWei,
-                    fee: FEE_TIER,
-                    sqrtPriceLimitX96: 0
-                });
-                
-                // Get QWEN decimals
-                const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
-                const qwenDecimals = await qwenContract.decimals();
-                
-                // Convert output to readable format
-                const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
-                
-                // Update UI
-                priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
-                priceInfo.classList.remove('loading-text', 'text-slate-400');
-                priceInfo.classList.add('text-brand-primary');
-                
-                // Calculate price per 1 ETH
-                const pricePerEth = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(2);
-                pricePerToken.innerText = `1 ETH = ${parseFloat(pricePerEth).toLocaleString()} QWEN`;
-                
-                isFetchingPrice = false;
-                return amountOut;
-                
-            } catch (error) {
-                console.error("Error fetching price:", error);
-                priceInfo.innerText = "Price unavailable";
-                priceInfo.classList.add('loading-text', 'text-slate-400');
-                pricePerToken.innerText = "1 ETH = ?? QWEN";
-                isFetchingPrice = false;
-                return null;
-            }
-        }
-
-        function checkInputState() {
-            const input = document.getElementById('input-amount');
-            const btn = document.getElementById('swap-action-btn');
-            const priceInfo = document.getElementById('price-info');
-            
-            const val = parseFloat(input.value);
-            
-            if(val > 0) {
-                btn.innerText = "Swap";
-                btn.disabled = false;
-                
-                // Debounce price fetch (wait 500ms after user stops typing)
-                clearTimeout(priceDebounceTimer);
-                priceDebounceTimer = setTimeout(() => {
-                    priceInfo.innerText = "Fetching price...";
-                    priceInfo.classList.add('loading-text');
-                    fetchPriceFromUniswap(val);
-                }, 500);
-                
-            } else {
-                btn.innerText = "Enter an amount";
-                btn.disabled = true;
-                priceInfo.innerText = "?? QWEN";
-                priceInfo.classList.remove('loading-text');
-                document.getElementById('price-per-token').innerText = "1 ETH = ?? QWEN";
-            }
-        }
-
-        document.getElementById('input-amount').addEventListener('input', checkInputState);
-
-        // --- WEB3 FUNCTIONS ---
-        async function connectWallet() {
-            const btn = document.getElementById('connectBtn');
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    provider = new ethers.BrowserProvider(window.ethereum);
-                    signer = await provider.getSigner();
-                    userAddress = await signer.getAddress();
-
-                    const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
-                    btn.innerText = shortAddr;
-                    btn.classList.add('bg-slate-800', 'text-white', 'border', 'border-slate-600');
-                    btn.classList.remove('bg-slate-200', 'text-slate-900');
-                    
-                    await fetchBalances();
-                } catch (error) {
-                    console.error(error);
-                    alert("Connection failed");
-                }
-            } else {
-                alert("Please install MetaMask!");
-            }
-        }
-
-        async function fetchBalances() {
-            if(!userAddress) return;
-
-            const ethBalance = await provider.getBalance(userAddress);
-            const ethFormatted = parseFloat(ethers.formatEther(ethBalance)).toFixed(4);
-            
-            document.getElementById('balance-from').innerText = ethFormatted;
-            document.getElementById('modal-bal-ETH').innerText = ethFormatted;
-
-            try {
-                const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
-                const qwenBalance = await qwenContract.balanceOf(userAddress);
-                const qwenDecimals = await qwenContract.decimals();
-                const qwenFormatted = parseFloat(ethers.formatUnits(qwenBalance, qwenDecimals)).toLocaleString();
-                
-                document.getElementById('balance-to').innerText = qwenFormatted;
-                document.getElementById('modal-bal-QWEN').innerText = qwenFormatted;
-            } catch (e) {
-                console.log("Error fetching QWEN balance", e);
-            }
-        }
-
-        function updateBalancesInModal() {
-            fetchBalances(); 
-        }
-
-        async function handleSwap() {
-            if(!userAddress) {
-                connectWallet();
-                return;
-            }
-
-            const btn = document.getElementById('swap-action-btn');
-            const inputVal = document.getElementById('input-amount').value;
-
-            if(isSwapping) return;
-            isSwapping = true;
-
-            const originalText = btn.innerText;
-            btn.innerText = "Confirm in Wallet...";
-            btn.disabled = true;
-            btn.classList.add('opacity-75', 'cursor-wait');
-
-            try {
-                // NANTI: Implementasi real swap dengan Router contract
-                // await router.exactInputSingle(...)
-                
-                await new Promise(r => setTimeout(r, 2000));
-
-                const outputVal = document.getElementById('price-info').innerText;
-                alert(`✅ Swap Successful!\n\nSent: ${inputVal} ETH\nReceived: ${outputVal}\n\nTx Hash: 0x123... (Simulated)`);
-                
-                document.getElementById('input-amount').value = '';
-                checkInputState();
-
-            } catch (error) {
-                console.error(error);
-                alert("Swap Failed or Rejected");
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-wait');
-                isSwapping = false;
-            }
-        }
-    </script>
+    <!-- JavaScript Files -->
+    <script src="js/contracts.js"></script>
+    <script src="js/web3.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
