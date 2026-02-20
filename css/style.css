@@ -9,7 +9,6 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Hide number input arrows */
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 
     -webkit-appearance: none; 
@@ -17,7 +16,6 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] { -moz-appearance: textfield; }
 
-/* Toggle Switch */
 .toggle-checkbox:checked {
     right: 0;
     border-color: #6366f1;
@@ -35,14 +33,37 @@ input[type=number] { -moz-appearance: textfield; }
     margin-left: -20px;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0f172a; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
 
-/* Loading Animation */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
 .loading-text { animation: pulse 1.5s infinite; }
+
+/* Modal Animation */
+#token-modal {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#token-modal > div {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
