@@ -120,10 +120,8 @@ function checkInputState() {
 
 // Handle Swap Button
 async function handleSwap() {
-    // Check if wallet is connected via Reown
-    const appkitState = window.AppKit?.getAppKitState();
-    if (!appkitState?.isConnected || !userAddress) {
-        window.AppKit?.open(); // Open Reown modal
+    if (!userAddress) {
+        openConnectModal();
         return;
     }
 
