@@ -9,7 +9,6 @@ let appkit = null;
 // ============================================
 // REOWN APPKIT CONFIGURATION
 // ============================================
-// ⚠️ WAJIB GANTI INI DENGAN PROJECT ID DARI cloud.reown.com
 const REOWN_PROJECT_ID = 'fec8257713128744eb3a392f52db227f'; 
 
 async function initReownAppKit() {
@@ -27,12 +26,6 @@ async function initReownAppKit() {
         
         if (!EthersAdapter) {
             console.error('❌ window.AppKitAdapterEthers not found');
-            return false;
-        }
-        
-        if (REOWN_PROJECT_ID === 'YOUR_PROJECT_ID') {
-            console.error('❌ Project ID belum diganti! Daftar di cloud.reown.com');
-            alert('⚠️ Project ID belum dikonfigurasi!\n\n1. Buka cloud.reown.com\n2. Daftar/Login\n3. Create Project\n4. Copy Project ID\n5. Paste di file js/web3.js baris 11');
             return false;
         }
         
@@ -66,7 +59,6 @@ async function initReownAppKit() {
         
         console.log('✅ Reown AppKit initialized successfully');
         
-        // Listen for account changes
         window.addEventListener('appkit:account', async (event) => {
             const account = event.detail;
             if (account && account.address) {
@@ -103,7 +95,7 @@ function openConnectModal() {
         appkit.open();
     } else {
         console.error('❌ AppKit not initialized');
-        alert('⚠️ Wallet connect belum siap!\n\nCek console browser untuk detail error.\n\nKemungkinan:\n1. Project ID belum diganti\n2. Reown script gagal load\n3. Internet bermasalah');
+        alert('⚠️ Wallet connect belum siap!\n\nCek console browser untuk detail error.');
     }
 }
 
