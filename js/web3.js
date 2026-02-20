@@ -4,11 +4,12 @@ let isSwapping = false;
 let isFetchingPrice = false;
 let priceDebounceTimer = null;
 let isPoolDetecting = false;
+let appkit = null;
 
 // ============================================
 // REOWN APPKIT CONFIGURATION
 // ============================================
-const REOWN_PROJECT_ID = fec8257713128744eb3a392f52db227f ; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
+const REOWN_PROJECT_ID = fec8257713128744eb3a392f52db227f; // ⚠️ GANTI DENGAN PROJECT ID DARI cloud.reown.com
 
 async function initReownAppKit() {
     try {
@@ -16,12 +17,13 @@ async function initReownAppKit() {
         const { EthersAdapter } = window.AppKitAdapterEthers;
         
         if (!createAppKit || !EthersAdapter) {
-            throw new Error('Reown scripts not loaded');
+            console.error('❌ Reown scripts not loaded');
+            return false;
         }
         
         const ethersAdapter = new EthersAdapter();
         
-        const appkit = createAppKit({
+        appkit = createAppKit({
             adapters: [ethersAdapter],
             projectId: REOWN_PROJECT_ID,
             networks: [
@@ -67,8 +69,22 @@ async function initReownAppKit() {
             console.log('🔌 Wallet disconnected');
         });
         
+        return true;
+        
     } catch (error) {
         console.error('❌ Reown failed:', error);
+        return false;
+    }
+}
+
+// ============================================
+// OPEN CONNECT MODAL (Reown)
+// ============================================
+function openConnectModal() {
+    if (appkit) {
+        appkit.open();
+    } else {
+        alert('Wallet connect is loading. Please try again in a moment.');
     }
 }
 
@@ -76,7 +92,14 @@ async function initReownAppKit() {
 // WALLET CONNECTED CALLBACK
 // ============================================
 async function onWalletConnected() {
+    const btn = document.getElementById('connectBtn');
     const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+    
+    // Update button to show wallet address
+    btn.innerText = shortAddr;
+    btn.classList.remove('bg-brand-primary', 'hover:bg-brand-primaryHover');
+    btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+    
     console.log(`✅ Wallet connected: ${userAddress}`);
     
     await detectPool();
