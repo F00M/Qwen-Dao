@@ -209,10 +209,6 @@ async function fetchPriceFromUniswap(amountIn) {
     
     console.log('🔍 Fetching price...');
     console.log('Pool exists:', POOL_EXISTS);
-    console.log('Pool Token0:', POOL_TOKEN0);
-    console.log('Pool Token1:', POOL_TOKEN1);
-    console.log('WETH is Token0:', TOKEN_IN_IS_TOKEN0);
-    console.log('Fee tier:', DETECTED_FEE_TIER);
     console.log('Amount in:', amountIn);
     
     if (!POOL_EXISTS || !DETECTED_FEE_TIER) {
@@ -224,6 +220,7 @@ async function fetchPriceFromUniswap(amountIn) {
     }
     
     try {
+        // ✅ PENTING: Pakai provider untuk read-only call
         const quoter = new ethers.Contract(CONTRACTS.QuoterV2, QUOTER_ABI, provider);
         const amountInWei = ethers.parseEther(amountIn.toString());
         
@@ -236,7 +233,8 @@ async function fetchPriceFromUniswap(amountIn) {
         console.log('Token Out:', tokenOut);
         console.log('Fee:', DETECTED_FEE_TIER);
         
-        const quote = await quoter.quoteExactInputSingle({
+        // ✅ PENTING: Pakai staticCall untuk read-only
+        const quote = await quoter.quoteExactInputSingle.staticCall({
             tokenIn: tokenIn,
             tokenOut: tokenOut,
             amountIn: amountInWei,
@@ -250,15 +248,8 @@ async function fetchPriceFromUniswap(amountIn) {
         const qwenContract = new ethers.Contract(CONTRACTS.QWEN, ERC20_ABI, provider);
         const qwenDecimals = await qwenContract.decimals();
         
-        // Calculate output based on token order
-        let amountOut;
-        if (TOKEN_IN_IS_TOKEN0) {
-            // WETH -> QWEN (Token0 -> Token1)
-            amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
-        } else {
-            // QWEN -> WETH (Token1 -> Token0)
-            amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
-        }
+        // Format output
+        const amountOut = ethers.formatUnits(quote.amountOut, qwenDecimals);
         
         priceInfo.innerText = parseFloat(amountOut).toLocaleString() + " QWEN";
         priceInfo.classList.remove('loading-text', 'text-slate-400', 'text-red-400');
@@ -277,7 +268,6 @@ async function fetchPriceFromUniswap(amountIn) {
         console.error("❌ Error fetching price:", error);
         console.error("Error code:", error.code);
         console.error("Error reason:", error.reason);
-        console.error("Error data:", error.data);
         console.error("Error message:", error.message);
         
         priceInfo.innerText = "Price unavailable";
@@ -288,8 +278,8 @@ async function fetchPriceFromUniswap(amountIn) {
             errorMsg = "Pool tidak ada liquidity";
         } else if (error.code === 'NETWORK_ERROR') {
             errorMsg = "Masalah jaringan";
-        } else if (error.reason) {
-            errorMsg = error.reason;
+        } else if (error.code === 'UNSUPPORTED_OPERATION') {
+            errorMsg = "Quoter call tidak support - cek contract";
         } else if (error.message) {
             errorMsg = error.message;
         }
